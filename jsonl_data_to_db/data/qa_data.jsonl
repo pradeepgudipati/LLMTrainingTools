@@ -1,0 +1,2 @@
+{"messages": [{"role": "user", "content": "What is this app for ? "}, {"role": "assistant", "content": "<p>Hi there, This app is useful solution to edit the training Q&As. </p>"}]}
+{"messages": [{"role": "user", "content": "Once i finish editing and adding new pairs, Can i use this dump for training ? "}, {"role": "assistant", "content": "<p>Yes, Use the db_to_jsonl.py code to dump the QA pairs into a JSONL file that can be directly uploaded to your LLM for fine tuning.</p>"}]}
