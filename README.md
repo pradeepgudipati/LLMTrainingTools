@@ -45,7 +45,6 @@ The format of the jsonl is as follows
     }
   ]
 }
-...
 ```
 
 ### 3. Flask Application for editing the training data
@@ -58,3 +57,9 @@ The format of the jsonl is as follows
 
 1. JSONL File - [qa_data.jsonl](jsonl_data_to_db%2Fdata%2Fqa_data.jsonl)
 2. SQL Lite DB file - [qa_data.db](jsonl_data_to_db%2Fdata%2Fqa_data.db)
+
+
+### License
+This source code is completely free to use and modify. Please feel free to use it in your projects.
+If you need any help or new ideas or have free time to contribute. 
+Please ping me at [LinkedIn - Pradeep Gudipati](https://www.linkedin.com/in/pradeepgudipati/)
