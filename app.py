@@ -4,12 +4,12 @@ from math import ceil
 from flask import Flask, render_template, request, jsonify, session
 
 from db_init import db
-from llm_training_data_model import LLMDataModel
+from models.llm_training_data_model import LLMDataModel
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 print(f"BASE_DIR: {BASE_DIR}")
-# .. in the path means go up one directory
-DB_PATH = os.path.join(BASE_DIR, '../jsonl_data_to_db/data/merged_data.db')
+# ".." in the path means go up one directory
+DB_PATH = os.path.join(BASE_DIR, 'jsonl_data_to_db/data/qa_data.db')
 print(f"DB_PATH: {DB_PATH}")
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'NFi2d0K45FYcX1ZXAXJ6NM'  # Change this to a random secret key
@@ -145,8 +145,8 @@ def update_question():
         item.user = new_question
         db.session.commit()
         return jsonify(status="success", message="Question updated successfully.")
-    except Exception as e:
-        return jsonify(status="error", message=str(e)), 500
+    except Exception as ex:
+        return jsonify(status="error", message=str(ex)), 500
 
 
 if __name__ == '__main__':
