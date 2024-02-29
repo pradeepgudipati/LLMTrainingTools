@@ -26,54 +26,6 @@ pip install -r requirements.txt
 
 # Usage
 
-### 1. JSONL to DB - 
-
-- JSONL to SQLite DB Converter Code -  [jsonl_to_sqllite.py](jsonl_data_to_db%2Fjsonl_to_sqllite.py)
-
-This python code converts the jsonl data to a sqllite database with a table called messages. 
-The messages table has 3 rows
-
-1. id - Primary key
-2. User - Contains the Question
-3. Assistant - Contains the answer to the Question
-
-### 2. DB to JSONL 
- - SQLite to JSONL Converter code - [db_to_jsonl.py](jsonl_data_to_db%2Fdb_to_jsonl.py)
-
-This code converts the sqlite database to a jsonl file
-The format of the jsonl is as follows
-
-```json
-{
-  "messages": [
-    {
-      "role": "user",
-      "content": ""
-    },
-    {
-      "role": "assistant",
-      "content": ""
-    }
-  ]
-}
-```
-
-### 3. Flask Application for editing the training data
-
-- Flask Server App Code - [app.py](app.py)
-- Flask HTML Template - [table_view.html](templates%2Ftable_view.html)
-- Data Model [llm_training_data_model.py](models%2Fllm_training_data_model.py)
-
-### 4. Training files
-
-1. JSONL Data File - [qa_data.jsonl](jsonl_data_to_db%2Fdata%2Fqa_data.jsonl)
-2. SQLite DB file - [qa_data.db](jsonl_data_to_db%2Fdata%2Fqa_data.db)
-
-### 5. CSV to JSONL File
-- CSV to JSONL Converter -  [csv_to_jsonl.py](jsonl_data_to_db%2Fcsv_to_jsonl.py)
-
-## Running the application 
-
 To run the web application for editing the training data
 ```bash
 > python app.py
@@ -151,6 +103,55 @@ convert_single_csv_to_jsonl(csv_file_path, output_jsonl_file)
 python csv_to_jsonl.py
 ```
 
+# More Details 
+
+### 1. JSONL to DB - 
+
+- JSONL to SQLite DB Converter Code -  [jsonl_to_sqllite.py](jsonl_data_to_db%2Fjsonl_to_sqllite.py)
+
+This python code converts the jsonl data to a sqllite database with a table called messages. 
+The messages table has 3 rows
+
+1. id - Primary key
+2. User - Contains the Question
+3. Assistant - Contains the answer to the Question
+
+### 2. DB to JSONL 
+ - SQLite to JSONL Converter code - [db_to_jsonl.py](jsonl_data_to_db%2Fdb_to_jsonl.py)
+
+This code converts the sqlite database to a jsonl file
+The format of the jsonl is as follows
+
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": ""
+    },
+    {
+      "role": "assistant",
+      "content": ""
+    }
+  ]
+}
+```
+
+### 3. Flask Application for editing the training data
+
+- Flask Server App Code - [app.py](app.py)
+- Flask HTML Template - [table_view.html](templates%2Ftable_view.html)
+- Data Model [llm_training_data_model.py](models%2Fllm_training_data_model.py)
+
+### 4. Training files
+
+1. JSONL Data File - [qa_data.jsonl](jsonl_data_to_db%2Fdata%2Fqa_data.jsonl)
+2. SQLite DB file - [qa_data.db](jsonl_data_to_db%2Fdata%2Fqa_data.db)
+
+### 5. CSV to JSONL File
+- CSV to JSONL Converter -  [csv_to_jsonl.py](jsonl_data_to_db%2Fcsv_to_jsonl.py)
+
+## Running the application 
 
 
 # Contributing
