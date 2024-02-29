@@ -1,35 +1,46 @@
 # LLMTrainingTools
 
-Some simple tools to help build the Training Data for LLM Chatbot Training.
+LLMTrainingTools provides a suite of utilities designed to facilitate the creation and management of training data for language learning models (LLMs), particularly chatbots. It offers tools for converting data between JSONL and SQLite formats, editing training data through a web interface, and converting CSV files to JSONL.
 
-# JSONL Editor
+# Features
+### - **JSONL and SQLite Conversion**: Convert data between JSONL files and SQLite databases.
+### - **Flask UI for Data Editing**: A web application for easy editing of training data.
+### - **CSV to JSONL Conversion**: Convert CSV files to JSONL format for LLM training.
 
-This folder contains the code to do the following
 
-1. Convert the JSONL file to a SQL Lite Db and vice versa
-2. Flask UI application to edit the training data.
+## Getting Started
+ - Python 3.6 or above
+ - Pip
+ - An IDE (PyCharm preferred) VSCode also ok
+ - SQLite
 
-## Pre-requisites
+## Installation
 
-Python 3.6 or above
-Pip
-Visual Studio Code or any other IDE - Pycharm(preferred)
-SQL Lite
+Clone the repository and install the required Python packages:
+```bash 
+git clone https://github.com/pradeepgudipati/LLMTrainingTools.git
+cd LLMTrainingTools
+pip install -r requirements.txt
 
-## What does this Repo Do
+```
 
-### 1. JSONL to DB - [jsonl_data_to_db](jsonl_data_to_db)
+# Usage
 
-This [jsonl_to_sqllite.py](jsonl_data_to_db%2Fjsonl_to_sqllite.py) python file converts the jsonl data to a sqllite
-database with a table called messages. This table has 3 rows
+### 1. JSONL to DB - 
+
+- JSONL to SQLite DB Converter Code -  [jsonl_to_sqllite.py](jsonl_data_to_db%2Fjsonl_to_sqllite.py)
+
+This python code converts the jsonl data to a sqllite database with a table called messages. 
+The messages table has 3 rows
 
 1. id - Primary key
 2. User - Contains the Question
 3. Assistant - Contains the answer to the Question
 
-### 2. DB to JSONL : [db_to_jsonl.py](jsonl_data_to_db%2Fdb_to_jsonl.py)
+### 2. DB to JSONL 
+ - SQLite to JSONL Converter code - [db_to_jsonl.py](jsonl_data_to_db%2Fdb_to_jsonl.py)
 
-The following Python file converts the sqllite database to a jsonl file
+This code converts the sqlite database to a jsonl file
 The format of the jsonl is as follows
 
 ```json
@@ -49,17 +60,17 @@ The format of the jsonl is as follows
 
 ### 3. Flask Application for editing the training data
 
-- Flask Server App - [app.py](app.py)
+- Flask Server App Code - [app.py](app.py)
 - Flask HTML Template - [table_view.html](templates%2Ftable_view.html)
 - Data Model [llm_training_data_model.py](models%2Fllm_training_data_model.py)
 
 ### 4. Training files
 
-1. JSONL File - [qa_data.jsonl](jsonl_data_to_db%2Fdata%2Fqa_data.jsonl)
-2. SQL Lite DB file - [qa_data.db](jsonl_data_to_db%2Fdata%2Fqa_data.db)
+1. JSONL Data File - [qa_data.jsonl](jsonl_data_to_db%2Fdata%2Fqa_data.jsonl)
+2. SQLite DB file - [qa_data.db](jsonl_data_to_db%2Fdata%2Fqa_data.db)
 
 ### 5. CSV to JSONL File
-- [csv_to_jsonl.py](jsonl_data_to_db%2Fcsv_to_jsonl.py)
+- CSV to JSONL Converter -  [csv_to_jsonl.py](jsonl_data_to_db%2Fcsv_to_jsonl.py)
 
 ## Running the application 
 
@@ -82,10 +93,7 @@ DB_PATH: D:\Dev\Workspace\LLMTrainingTools\jsonl_data_to_db/data/qa_data.db
  * Debugger is active!
  * Debugger PIN: 209-879-976
 127.0.0.1 - - [29/Feb/2024 12:11:15] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [29/Feb/2024 12:11:16] "GET /static/res/questionEditIcon.svg HTTP/1.1" 200 -
-127.0.0.1 - - [29/Feb/2024 12:11:16] "GET /static/res/deleteIcon.svg HTTP/1.1" 200 -
-127.0.0.1 - - [29/Feb/2024 12:11:16] "GET /static/res/answerEditIcon.svg HTTP/1.1" 200 -
-127.0.0.1 - - [29/Feb/2024 12:11:18] "GET /favicon.ico HTTP/1.1" 404 -
+...
 
 ```
 
@@ -145,9 +153,8 @@ python csv_to_jsonl.py
 
 
 
-### License
+# Contributing
+Contributions are welcome! If you have ideas for improvements or want to contribute code, please feel free to reach out or submit a pull request.
 
-This source code is completely free to use and modify. Please feel free to use it in your projects.
-If you need any help or new ideas or have free time to contribute.
-Please ping me at [LinkedIn - Pradeep Gudipati](https://www.linkedin.com/in/pradeepgudipati/)
-
+# License
+This project is free to use and modify. For any queries or contributions, please contact Pradeep Gudipati on [Linkedin](https://www.linkedin.com/in/pradeepgudipati)
