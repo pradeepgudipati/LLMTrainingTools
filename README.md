@@ -1,6 +1,6 @@
 # LLMTrainingTools
-Some simple tools to help build the Training Data for LLM Chatbot Training. 
 
+Some simple tools to help build the Training Data for LLM Chatbot Training.
 
 # JSONL Editor
 
@@ -58,8 +58,96 @@ The format of the jsonl is as follows
 1. JSONL File - [qa_data.jsonl](jsonl_data_to_db%2Fdata%2Fqa_data.jsonl)
 2. SQL Lite DB file - [qa_data.db](jsonl_data_to_db%2Fdata%2Fqa_data.db)
 
+### 5. CSV to JSONL File
+- [csv_to_jsonl.py](jsonl_data_to_db%2Fcsv_to_jsonl.py)
+
+## Running the application 
+
+To run the web application for editing the training data
+```bash
+> python app.py
+
+----------------------------------------------------------------
+(llmtraining) PS D:\Dev\Workspace\LLMTrainingTools> python .\app.py                           
+BASE_DIR: D:\Dev\Workspace\LLMTrainingTools
+DB_PATH: D:\Dev\Workspace\LLMTrainingTools\jsonl_data_to_db/data/qa_data.db
+ * Serving Flask app 'app'
+ * Debug mode: on
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+ * Restarting with stat
+BASE_DIR: D:\Dev\Workspace\LLMTrainingTools
+DB_PATH: D:\Dev\Workspace\LLMTrainingTools\jsonl_data_to_db/data/qa_data.db
+ * Debugger is active!
+ * Debugger PIN: 209-879-976
+127.0.0.1 - - [29/Feb/2024 12:11:15] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [29/Feb/2024 12:11:16] "GET /static/res/questionEditIcon.svg HTTP/1.1" 200 -
+127.0.0.1 - - [29/Feb/2024 12:11:16] "GET /static/res/deleteIcon.svg HTTP/1.1" 200 -
+127.0.0.1 - - [29/Feb/2024 12:11:16] "GET /static/res/answerEditIcon.svg HTTP/1.1" 200 -
+127.0.0.1 - - [29/Feb/2024 12:11:18] "GET /favicon.ico HTTP/1.1" 404 -
+
+```
+
+Now Open the below URL in your favorite browser - http://127.0.0.1:5000
+
+![screenshot.png](screenshot.png)
+
+###  Now to export all these QA pairs in the Db into a JSONL file, run the following command
+
+1. First verify the paths to the files : JSONL and DB  in the [db_to_jsonl.py](jsonl_data_to_db%2Fdb_to_jsonl.py)
+```python
+# Paths for the JSONL file and SQLite database
+jsonl_file_path = "data/qa_data.jsonl"
+sqlite_db_path = "data/merged_data.db"
+```
+2. Now run the following command in the terminal to execute the code
+
+```bash
+python db_to_jsonl.py
+```
+###  Now to convert the JSONL file to DB, run the following command
+
+1. First verify the jsonl and db paths in the [jsonl_to_sqllite.py](jsonl_data_to_db%2Fjsonl_to_sqllite.py)
+
+```python
+jsonl_file_path = "data/qa_data.jsonl"
+sqlite_db_path = "data/qa_data.db"
+```
+2. Now run the following command in the terminal to execute the code
+```bash 
+python jsonl_to_sqllite.py
+```
+
+###  Now to convert the CSV file to JSONL, run the following command
+
+1. First verify the jsonl and csv paths in the[csv_to_jsonl.py](jsonl_data_to_db%2Fcsv_to_jsonl.py)
+ - If you have multiple CSV files then use the below path variable 
+```python
+# Paths
+csv_files_path = './docs'
+output_jsonl_file = 'training_data.jsonl'
+# Uncomment the line below to process all CSV files in a folder
+convert_folder_csv_to_jsonl(csv_files_path, output_jsonl_file)
+``` 
+ - IF you have only 1 CSV file 
+```python
+# Paths
+csv_files_path = './training_data.csv'
+output_jsonl_file = 'training_data.jsonl'
+convert_single_csv_to_jsonl(csv_file_path, output_jsonl_file)
+```
+
+2. Execute the code 
+```bash 
+python csv_to_jsonl.py
+```
+
+
 
 ### License
+
 This source code is completely free to use and modify. Please feel free to use it in your projects.
-If you need any help or new ideas or have free time to contribute. 
+If you need any help or new ideas or have free time to contribute.
 Please ping me at [LinkedIn - Pradeep Gudipati](https://www.linkedin.com/in/pradeepgudipati/)
+

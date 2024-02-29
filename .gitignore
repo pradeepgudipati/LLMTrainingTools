@@ -128,6 +128,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+llmtraining/
 
 # Spyder project settings
 .spyderproject
