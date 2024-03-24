@@ -10,10 +10,10 @@ from db_init import db
 
 
 class LLMDataModel(db.Model):
-    __tablename__ = 'messages'
+    __tablename__ = "messages"
     id = db.Column(db.Integer, primary_key=True)
     user = db.Column(db.Text)
     assistant = db.Column(db.Text)
 
     def __repr__(self):
-        return f'<LLMDataModel {self.id}>'
+        return f"<LLMDataModel {self.id}>"

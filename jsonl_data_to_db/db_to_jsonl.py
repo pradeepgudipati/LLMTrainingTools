@@ -20,21 +20,23 @@ def sqllite_to_jsonl(sql_file_path, jsonl_path, table_name):
         cursor = conn.cursor()
 
         # Execute a query to fetch the data
-        query = f"SELECT User, Assistant FROM {table_name}"  # Replace with your table name
+        query = (
+            f"SELECT User, Assistant FROM {table_name}"  # Replace with your table name
+        )
         cursor.execute(query)
 
         # Open a file to write
-        with open(jsonl_path, 'w') as file:
+        with open(jsonl_path, "w") as file:
             for row in cursor.fetchall():
                 # Format the row into the specified JSON structure
                 data = {
                     "messages": [
                         {"role": "user", "content": row[0]},
-                        {"role": "assistant", "content": row[1]}
+                        {"role": "assistant", "content": row[1]},
                     ]
                 }
                 # Write the JSON object to the file
-                file.write(json.dumps(data) + '\n')
+                file.write(json.dumps(data) + "\n")
         print(f"Data written to {jsonl_path}")
         # Close the database connection
         conn.close()

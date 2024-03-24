@@ -10,27 +10,29 @@ def import_jsonl_to_sqlite(jsonl_path, sqlite_path):
     cursor = conn.cursor()
 
     # Create a table with separate columns for user and assistant content
-    cursor.execute('''
+    cursor.execute("""
             CREATE TABLE IF NOT EXISTS messages (
                 id INTEGER PRIMARY KEY,
                 user TEXT,
                 assistant TEXT
             )
-        ''')
+        """)
 
     # Read and insert data from JSONL file, mapping content to appropriate columns
-    with open(jsonl_path, 'r') as file:
+    with open(jsonl_path, "r") as file:
         for line in file:
             data = json.loads(line)
-            for message in data['messages']:
-                if message['role'] == 'user':
-                    user_msg = message['content']
-                elif message['role'] == 'assistant':
-                    assistant_msg = message['content']
+            for message in data["messages"]:
+                if message["role"] == "user":
+                    user_msg = message["content"]
+                elif message["role"] == "assistant":
+                    assistant_msg = message["content"]
 
                     # Insert the pair of messages into the database
-                    cursor.execute('INSERT INTO messages (user, assistant) VALUES (?, ?)',
-                                   (user_msg, assistant_msg))
+                    cursor.execute(
+                        "INSERT INTO messages (user, assistant) VALUES (?, ?)",
+                        (user_msg, assistant_msg),
+                    )
 
                     # Reset the variables for the next pair
                     user_msg = None
@@ -44,16 +46,16 @@ def import_jsonl_to_sqlite(jsonl_path, sqlite_path):
 def test_jsonl_to_sqlite(json_path, sqlite_path):
     # Read data from JSONL file
     jsonl_data = []
-    with open(json_path, 'r') as file:
+    with open(json_path, "r") as file:
         for line in file:
             data = json.loads(line)
             user_msg = None
             assistant_msg = None
-            for message in data['messages']:
-                if message['role'] == 'user':
-                    user_msg = message['content']
-                elif message['role'] == 'assistant':
-                    assistant_msg = message['content']
+            for message in data["messages"]:
+                if message["role"] == "user":
+                    user_msg = message["content"]
+                elif message["role"] == "assistant":
+                    assistant_msg = message["content"]
             jsonl_data.append((user_msg, assistant_msg))
 
     # Read data from SQLite database

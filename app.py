@@ -9,48 +9,52 @@ from models.llm_training_data_model import LLMDataModel
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 print(f"BASE_DIR: {BASE_DIR}")
 # ".." in the path means go up one directory
-DB_PATH = os.path.join(BASE_DIR, 'jsonl_data_to_db/data/qa_data.db')
+DB_PATH = os.path.join(BASE_DIR, "jsonl_data_to_db/data/qa_data.db")
 print(f"DB_PATH: {DB_PATH}")
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'NFi2d0K45FYcX1ZXAXJ6NM'  # Change this to a random secret key
+app.config["SECRET_KEY"] = (
+    "NFi2d0K45FYcX1ZXAXJ6NM"  # Change this to a random secret key
+)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + DB_PATH
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + DB_PATH
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 try:
     db.init_app(app)
 except Exception as e:
     print(f"DB initializing Exception: {e}")
 
 
-@app.route('/', methods=['GET'])
-@app.route('/page/<int:page>', methods=['GET'])
+@app.route("/", methods=["GET"])
+@app.route("/page/<int:page>", methods=["GET"])
 def index(page=None):
     # Initialize the search queries with values from session
-    query_qa = session.get('query-qa', '')
-    query_ans = session.get('query-ans', '')
-    per_page = request.args.get('per_page', default=session.get('per_page', 20), type=int)
+    query_qa = session.get("query-qa", "")
+    query_ans = session.get("query-ans", "")
+    per_page = request.args.get(
+        "per_page", default=session.get("per_page", 20), type=int
+    )
 
     # Check for new search queries in the request
-    if 'query-qa' in request.args:
-        query_qa = request.args.get('query-qa')
-        if query_qa != session.get('query-qa', ''):
-            session['query-qa'] = query_qa
+    if "query-qa" in request.args:
+        query_qa = request.args.get("query-qa")
+        if query_qa != session.get("query-qa", ""):
+            session["query-qa"] = query_qa
             page = 1  # Reset page to 1 if there's a new search
-    if 'query-ans' in request.args:
-        query_ans = request.args.get('query-ans')
-        if query_ans != session.get('query-ans', ''):
-            session['query-ans'] = query_ans
+    if "query-ans" in request.args:
+        query_ans = request.args.get("query-ans")
+        if query_ans != session.get("query-ans", ""):
+            session["query-ans"] = query_ans
             page = 1  # Reset page to 1 if there's a new search
 
     # Set the page number
     if page is None:
-        page = request.args.get('page', default=session.get('page', 1), type=int)
+        page = request.args.get("page", default=session.get("page", 1), type=int)
 
     # Save the session values.
-    session['per_page'] = per_page
-    session['page'] = page
-    session['query-qa'] = query_qa
-    session['query-ans'] = query_ans
+    session["per_page"] = per_page
+    session["page"] = page
+    session["query-qa"] = query_qa
+    session["query-ans"] = query_ans
 
     # Ensure the page number is within the valid range
     total_items = LLMDataModel.query.count()
@@ -68,16 +72,20 @@ def index(page=None):
     data = query.paginate(page=page, per_page=per_page, error_out=False)
     count = query.count()
 
-    return render_template('table_view.html', data=data, count=count,
-                           page=page,
-                           per_page=session['per_page'],
-                           query_qa=session['query-qa'],
-                           query_ans=session['query-ans'])
+    return render_template(
+        "table_view.html",
+        data=data,
+        count=count,
+        page=page,
+        per_page=session["per_page"],
+        query_qa=session["query-qa"],
+        query_ans=session["query-ans"],
+    )
 
 
-@app.route('/save/<int:item_id>', methods=['POST'])
+@app.route("/save/<int:item_id>", methods=["POST"])
 def save_content(item_id):
-    content = request.form['content']
+    content = request.form["content"]
     item = LLMDataModel.query.get(item_id)
     if item:
         item.assistant = content
@@ -86,12 +94,12 @@ def save_content(item_id):
     return jsonify(status="error", message="Item not found.")
 
 
-@app.route('/update_answer', methods=['POST'])
+@app.route("/update_answer", methods=["POST"])
 def update_answer():
     data = request.json
     print(f"API received {data}")
-    item_id = data.get('item_id')
-    content = data.get('content')
+    item_id = data.get("item_id")
+    content = data.get("content")
 
     # Update the content in the database based on 'item_id'
     item = LLMDataModel.query.get(item_id)
@@ -100,22 +108,22 @@ def update_answer():
         item.assistant = content
         db.session.commit()
         db.session.close()
-        return 'Content updated successfully', 200
+        return "Content updated successfully", 200
     else:
-        return 'Item not found', 404
+        return "Item not found", 404
 
 
-@app.route('/add', methods=['POST'])
+@app.route("/add", methods=["POST"])
 def add_new_qa():
     data = request.json
-    new_item = LLMDataModel(user=data['user'], assistant=data['assistant'])
+    new_item = LLMDataModel(user=data["user"], assistant=data["assistant"])
     print(f"Adding new item: {new_item}")
     db.session.add(new_item)
     db.session.commit()
     return jsonify(status="success", message="New item added.")
 
 
-@app.route('/delete/<int:item_id>', methods=['DELETE'])
+@app.route("/delete/<int:item_id>", methods=["DELETE"])
 def delete_qa(item_id):
     print(f"Delete item_id: {item_id}")
     item = LLMDataModel.query.get(item_id)
@@ -128,11 +136,11 @@ def delete_qa(item_id):
     return jsonify(status="error", message="Item not found.")
 
 
-@app.route('/update_question', methods=['POST'])
+@app.route("/update_question", methods=["POST"])
 def update_question():
     data = request.json
-    item_id = data.get('item_id')
-    new_question = data.get('new_question')
+    item_id = data.get("item_id")
+    new_question = data.get("new_question")
 
     if not item_id or not new_question:
         return jsonify(status="error", message="Missing item ID or new question."), 400
@@ -149,7 +157,7 @@ def update_question():
         return jsonify(status="error", message=str(ex)), 500
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with app.app_context():
         db.create_all()  # This will create the database using the defined models
     app.run(debug=True)
