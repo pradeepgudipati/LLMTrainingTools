@@ -70,9 +70,9 @@ def test_jsonl_to_sqlite(json_path, sqlite_path):
         print("Length of Data is different -- Copy failed ")
 
 
-jsonl_file_path = "data/qa_data.jsonl"
-sqlite_db_path = "data/qa_data.db"
-
-import_jsonl_to_sqlite(jsonl_file_path, sqlite_db_path)
-# Verify that all Records are added to DB.
-test_jsonl_to_sqlite(jsonl_file_path, sqlite_db_path)
+# jsonl_file_path = "data/qa_data.jsonl"
+# sqlite_db_path = "data/qa_data.db"
+#
+# import_jsonl_to_sqlite(jsonl_file_path, sqlite_db_path)
+# # Verify that all Records are added to DB.
+# test_jsonl_to_sqlite(jsonl_file_path, sqlite_db_path)

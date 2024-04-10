@@ -7,52 +7,60 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <script src="https://cdn.ckeditor.com/4.16.0/standard/ckeditor.js"></script>
 
-    <title>LLM Training App</title>
-    <style>
-        .html-content {
-            min-height: 100px;
-        }
-
-        /* CSS class for CKEditor field in edit mode */
-        .editing {
-            background-color: cornsilk !important;
-        }
-
-        .not-editing {
-            background-color: white !important;
-        }
-
-        .custom-table-layout {
-            table-layout: fixed;
-            width: 100%;
-        }
-
-        .col-id {
-            width: 5%;
-        }
-
-        .col-question {
-            width: 20%;
-        }
-
-        .col-answer {
-            width: 65%;
-        }
-
-        .col-action {
-            width: 10%;
-        }
-
-        .popup-custom-width {
-            width: 80%; /* or any other value */
-        }
-
-    </style>
+    <title>LLM Training Tools</title>
+    <style src="{{ url_for('static', filename='css/styles.css') }}"></style>
 </head>
 <body class="bg-gray-100">
+
+
+<nav class="bg-white border-gray-200 dark:bg-gray-900">
+    <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
+        <a href="https://flowbite.com/" class="flex items-center space-x-3 rtl:space-x-reverse">
+            <img src="{{ url_for('static', filename='res/logo.png') }}" class="h-8" alt="Logo"/>
+            <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">LLM Training Tools </span>
+        </a>
+        <button data-collapse-toggle="navbar-default" type="button"
+                class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
+                aria-controls="navbar-default" aria-expanded="false">
+            <span class="sr-only">Menu</span>
+            <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 14">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M1 1h15M1 7h15M1 13h15"/>
+            </svg>
+        </button>
+        <div class="hidden w-full md:block md:w-auto" id="navbar-default">
+            <ul class="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700">
+                <li>
+                    <a id="import-csv-link"
+                       class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">CSV
+                        to JSONL</a>
+                </li>
+                <li>
+                    <a id="import-jsonl-link"
+                       class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">
+                        Import JSONL to DB</a>
+                </li>
+                <li>
+                    <a href="{{ url_for('export_jsonl') }}"
+                       class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">
+                        Export to JSONL</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- This is the file upload form that will be displayed when the "Import JSONL to DB" button is clicked -->
+<div id="import-jsonl-form" style="display: none;">
+    <form action="{{ url_for('jsonl_to_sqlite') }}" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".jsonl">
+        <input type="submit" value="Upload">
+    </form>
+</div>
 <div class="container mx-auto px-4">
     <!-- Flex container for both forms -->
     <div class="flex justify-end mt-4 space-x-4">
+
         <!-- Add Row Form -->
         <div class="flex justify-end mt-4">
             <button id="add-row-btn"
@@ -60,6 +68,7 @@
                 Add New QA Pair
             </button>
         </div>
+
         <!-- Go to Page Form -->
         <form action="{{ url_for('index') }}" method="get" class="flex items-center">
             <label for="page-number" class="mr-2">Go to page:</label>
@@ -131,6 +140,42 @@
             </div>
         </div>
     </div>
+    <!-- Popup Form for Upload file -->
+    <div id="upload-file-popup" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white popup-custom-width">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Upload File</h3>
+                <span id="file-name" class="hidden text-lg font-medium text-gray-900 dark:text-white"></span>
+                <span id="file-error" class="hidden text-lg font-medium text-red-900 dark:text-white"></span>
+                <div id="drop-zone" class="mt-xl-3 px-7 py-3">
+                    <label for="dropzone-file"
+                           class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
+                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                            <svg class="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true"
+                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                      stroke-width="2"
+                                      d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                            </svg>
+                            <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Click to upload</span>
+                                or drag and drop</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">CSV / JSONL</p>
+                        </div>
+                        <input id="dropzone-file" type="file" class="hidden" accept=".csv, .json, .jsonl"/>
+                    </label>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="cancel-upload-btn"
+                            class="px-4 py-1 text-white bg-gray-500 rounded hover:bg-gray-600 mr-2">Cancel
+                    </button>
+                    <button id="upload-btn" class="px-4 py-1 text-white bg-blue-500 rounded hover:bg-blue-600">Upload
+                    </button>
+                    <button id="process-btn" class="hidden px-4 py-1 text-white bg-blue-500 rounded hover:bg-blue-600">Process
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
     <h1 class="text-xl font-bold my-4">LLM Training Data</h1>
@@ -173,7 +218,7 @@
                     </td>
                     <td id="question-{{ item.id }}"
                         class="px-5 py-5 border-b border-gray-200 bg-white text-sm col-question">
-                        <div class="flex items-center" contenteditabl="false">
+                        <div class="flex items-center" contenteditable="false">
                             {{ item.user | safe }}
                         </div>
                     </td>
@@ -239,201 +284,12 @@
 
 <!-- JavaScript to handle row editing -->
 <script>
+    const staticUrl = "{{ url_for('static', filename='') }}";
 
-    function toggleQuestionEditor(item_id) {
-        let questionDiv = document.getElementById('question-' + item_id);
-        let isEditing = questionDiv.getAttribute('contenteditable') === 'true';
-        let editQuestionButton = document.getElementById('edit-q-btn-' + item_id);
-        if (isEditing) {
-            // Save the edited question
-            let newQuestion = questionDiv.innerText;
-            fetch('/update_question', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    item_id: item_id,
-                    new_question: newQuestion
-                }),
-            })
-                .then(response => response.json())
-                .then(data => {
-                    console.log(data.message); // Handle success or error message
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
-
-            questionDiv.setAttribute('contenteditable', 'false');
-            questionDiv.classList.remove('editing');
-            editQuestionButton.querySelector('span').textContent = 'Edit Q';
-            editQuestionButton.querySelector('img').src = "{{ url_for('static', filename='res/questionEditIcon.svg') }}";
-            questionDiv.classList.add('not-editing');
-        } else {
-            // Enable editing
-            questionDiv.setAttribute('contenteditable', 'true');
-            questionDiv.classList.add('editing');
-            questionDiv.focus();
-            {#document.getElementById('edit-q-btn-' + item_id).innerText = 'Save';#}
-            editQuestionButton.querySelector('span').textContent = 'Save';
-            editQuestionButton.querySelector('img').src = "{{ url_for('static', filename='res/saveIcon.svg') }}";
-            questionDiv.focus();
-            questionDiv.classList.add('editing');
-        }
-    }
-
-    let newAnswerEditor;
-
-    function toggleAnswerEditor(item_id) {
-        console.log('Toggling editor for item ID ' + item_id);
-        let contentDiv = document.getElementById('content-' + item_id);
-        console.log("Content Div -- ", contentDiv);
-        let editorInstance = CKEDITOR.instances['content-' + item_id]; // Corrected instance ID
-        console.log("Editor Instance --", editorInstance);
-        let editAnswerButton = document.getElementById('edit-a-btn-' + item_id);
-        if (contentDiv.getAttribute('contenteditable') === 'true') {
-            // Switch to "Save" mode
-            let data = editorInstance.getData();
-            console.log("Edited html -- ", data);
-            fetch('/update_answer', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    item_id: item_id,
-                    content: data,
-                }),
-            })
-                .then(response => {
-                    if (response.ok) {
-                        // Data saved successfully, you can show a success message if needed
-                        console.log('Content saved successfully');
-                    } else {
-                        // Handle errors
-                        console.error('Error saving content');
-                    }
-                })
-                .catch(error => {
-                    console.error('Network error:', error);
-                });
-            editorInstance.destroy(); // Destroy the editor instance
-            contentDiv.setAttribute('contenteditable', 'false');
-            contentDiv.innerHTML = data; // Update the div with the new HTML content
-            editAnswerButton.querySelector('span').textContent = 'Edit A';
-            editAnswerButton.querySelector('img').src = "{{ url_for('static', filename='res/answerEditIcon.svg') }}";
-            contentDiv.classList.add('not-editing');
-        } else {
-            // Switch to "Edit" mode
-            console.log('Switching to edit mode');
-            console.log("Editing  -- content-" + item_id);
-            CKEDITOR.inline('content-' + item_id, {
-                // Enable spellcheck
-                scayt_autoStartup: true, // Automatically start Spell Check As You Type
-                scayt_sLang: 'en_US', // Language for spellcheck (change to your desired language)
-                scayt_uiTabs: '1,1,1', // Enable all SCAYT tabs (Spelling, Options, Grammar)
-                contenteditable: true, // Enable contenteditable attribute on element
-            }); // Corrected editor initialization
-            contentDiv.setAttribute('contenteditable', 'true');
-
-            contentDiv.focus();
-            editAnswerButton.querySelector('span').textContent = 'Save';
-            editAnswerButton.querySelector('img').src = "{{ url_for('static', filename='res/saveIcon.svg') }}";
-
-            // Add the 'editing' class to change the background color to white
-            contentDiv.classList.add('editing');
-        }
-    }
-
-    // Function to show the popup
-    function showPopup() {
-        document.getElementById('new-row-popup').classList.remove('hidden');
-        CKEDITOR.replace('new-answer', {
-            // Custom CKEditor configuration
-        });
-        newAnswerEditor = CKEDITOR.instances['new-answer'];
-    }
-
-    // Function to hide the popup
-    function hidePopup() {
-        if (newAnswerEditor) {
-            newAnswerEditor.destroy();
-            newAnswerEditor = null;
-        }
-        document.getElementById('new-row-popup').classList.add('hidden');
-    }
-
-    // Existing saveNewRow function, modified to handle POST request
-    function saveNewRow() {
-        let question = document.getElementById('new-question').value;
-        let answer = newAnswerEditor.getData();
-
-        fetch('/add', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                user: question,
-                assistant: answer
-            }),
-        })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Success:', data);
-                // After an add, update, or delete operation
-                window.location.reload();
-
-                // Optionally, update the table here to show the new row
-                // You might need to write a function to update the DOM
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-            });
-
-        hidePopup();
-    }
-
-    // Function to handle Delete QA Pair
-    function deleteQAPair(item_id) {
-        if (item_id == 1) {
-            alert("Cannot delete this row");
-            return;
-        }
-
-        if (item_id > 2) {
-            console.log('Deleting item ID ' + item_id);
-            if (confirm("Are you sure you want to delete this item?")) {
-                fetch('/delete/' + item_id, {
-                    method: 'DELETE',
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('Delete Success:', data);
-                        // After an add, update, or delete operation
-                        window.location.reload();
-
-                        // Optionally, remove the deleted row from the table
-                        // document.getElementById('row-' + item_id).remove();
-                    })
-                    .catch((error) => {
-                        console.error('Error:', error);
-                    });
-            }
-        }
-    }
-
-    // Event listener for 'Add New Row' button
-    document.getElementById('add-row-btn').addEventListener('click', showPopup);
-
-    // Event listener for 'Cancel' button in the popup
-    document.getElementById('cancel-btn').addEventListener('click', hidePopup);
-
-    // Event listener for 'Save' button in the popup
-    document.getElementById('save-btn').addEventListener('click', saveNewRow);
-
-
+</script>
+<script src="{{ url_for('static', filename='js/table_main.js') }}">
+    const staticUrl = "{{ url_for('static', filename='') }}";
+    const CKEDITOR = window.CKEDITOR;
 </script>
 </body>
 </html>

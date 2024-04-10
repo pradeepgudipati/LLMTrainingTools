@@ -45,11 +45,11 @@ def sqllite_to_jsonl(sql_file_path, jsonl_path, table_name):
         return False
 
 
-# Paths for the JSONL file and SQLite database
-jsonl_file_path = "data/qa_data.jsonl"
-sqlite_db_path = "data/merged_data.db"
-# print CWD
-print(f"CWD: {os.getcwd()}")
-
-# Call the function
-sqllite_to_jsonl(sqlite_db_path, jsonl_file_path, "messages")
+# # Paths for the JSONL file and SQLite database
+# jsonl_file_path = "data/qa_data.jsonl"
+# sqlite_db_path = "data/merged_data.db"
+# # print CWD
+# print(f"CWD: {os.getcwd()}")
+#
+# # Call the function
+# sqllite_to_jsonl(sqlite_db_path, jsonl_file_path, "messages")

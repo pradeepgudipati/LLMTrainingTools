@@ -17,9 +17,13 @@ LLMTrainingTools provides a suite of utilities designed to facilitate the creati
 ## Installation
 
 Clone the repository and install the required Python packages:
+
+***For Windows***
 ```bash 
 git clone https://github.com/pradeepgudipati/LLMTrainingTools.git
 cd LLMTrainingTools
+python -m venv llmtraining
+./llmtraining/Scripts/activate
 pip install -r requirements.txt
 
 ```
@@ -139,7 +143,7 @@ The format of the jsonl is as follows
 
 ### 3. Flask Application for editing the training data
 
-- Flask Server App Code - [app.py](app.py)
+- Flask Server App Code - [app.py](src/app.py)
 - Flask HTML Template - [table_view.html](templates%2Ftable_view.html)
 - Data Model [llm_training_data_model.py](models%2Fllm_training_data_model.py)
 

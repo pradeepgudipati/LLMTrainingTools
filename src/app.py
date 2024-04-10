@@ -2,22 +2,28 @@ import os
 from math import ceil
 
 from flask import Flask, render_template, request, jsonify, session
+from flask import send_file
+from werkzeug.utils import secure_filename
 
-from db_init import db
-from models.llm_training_data_model import LLMDataModel
+from jsonl_data_to_db.csv_to_jsonl import convert_single_csv_to_jsonl
+from jsonl_data_to_db.db_to_jsonl import sqllite_to_jsonl
+from jsonl_data_to_db.jsonl_to_sqllite import import_jsonl_to_sqlite
+from src.db_init import db
+from src.models.llm_training_data_model import LLMDataModel
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 print(f"BASE_DIR: {BASE_DIR}")
 # ".." in the path means go up one directory
-DB_PATH = os.path.join(BASE_DIR, "jsonl_data_to_db/data/qa_data.db")
+DB_PATH = os.path.join(BASE_DIR, "../jsonl_data_to_db/data/qa_data.db")
 print(f"DB_PATH: {DB_PATH}")
-app = Flask(__name__)
+app = Flask(__name__, template_folder="frontend/templates", static_folder="frontend/static")
 app.config["SECRET_KEY"] = (
     "NFi2d0K45FYcX1ZXAXJ6NM"  # Change this to a random secret key
 )
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + DB_PATH
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config['UPLOAD_FOLDER'] = 'user_uploads/jsonl/'
 try:
     db.init_app(app)
 except Exception as e:
@@ -155,6 +161,91 @@ def update_question():
         return jsonify(status="success", message="Question updated successfully.")
     except Exception as ex:
         return jsonify(status="error", message=str(ex)), 500
+
+
+@app.route('/jsonl_to_db', methods=['POST'])
+def jsonl_to_db():
+    # Check if the post request has the file part
+    if 'file' not in request.files:
+        return 'No file part in the request.', 400
+
+    file = request.files['file']
+
+    # If the user does not select a file, the browser submits an
+    # empty file without a filename.
+    if file.filename == '':
+        return 'No selected file.', 400
+
+    if file:
+        filename = secure_filename(file.filename)
+        jsonl_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(jsonl_path)
+        sqlite_path = "./jsonl_data_to_db/data/qa_data.db"  # Replace with your SQLite database path
+        try:
+            import_jsonl_to_sqlite(jsonl_path, sqlite_path)
+            return send_file(sqlite_path, as_attachment=True)  # Send the SQLite file to the client
+        except Exception as e:
+            return f"Error converting JSONL to SQLite: {e}", 500
+
+
+@app.route('/csv_to_jsonl', methods=['POST'])
+def csv_to_jsonl():
+    # Check if the post request has the file part
+    if 'file' not in request.files:
+        return 'No file part in the request.', 400
+
+    file = request.files['file']
+
+    # If the user does not select a file, the browser submits an
+    # empty file without a filename.
+    if file.filename == '':
+        return 'No selected file.', 400
+
+    if file:
+        filename = secure_filename(file.filename)
+        csv_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(csv_path)
+        jsonl_path = "./jsonl_data_to_db/data/qa_data.jsonl"  # Replace with your JSONL file path
+        try:
+            convert_single_csv_to_jsonl(csv_path, jsonl_path)
+            return send_file(jsonl_path, as_attachment=True)  # Send the SQLite file to the client
+        except Exception as e:
+            return f"Error converting CSV to JSONL: {e}", 500
+
+
+@app.route('/export_jsonl', methods=['GET'])
+def export_jsonl():
+    # Define the path to the SQLite database and the path where you want to save the JSONL file
+    sql_file_path = "../jsonl_data_to_db/data/qa_data.db"
+    jsonl_path = "../jsonl_data_to_db/data/qa_data.jsonl"
+    table_name = "messages"  # Replace with your table name
+
+    # Call the sqllite_to_jsonl function
+    sqllite_to_jsonl(sql_file_path, jsonl_path, table_name)
+
+    # Send the JSONL file to the client
+    return send_file(jsonl_path, as_attachment=True)
+
+
+@app.route('/import_jsonl', methods=['POST'])
+def jsonl_to_sqlite():
+    # Check if the post request has the file part
+    if 'file' not in request.files:
+        return 'No file part in the request.', 400
+
+    file = request.files['file']
+
+    # If the user does not select a file, the browser submits an
+    # empty file without a filename.
+    if file.filename == '':
+        return 'No selected file.', 400
+
+    if file:
+        filename = secure_filename(file.filename)
+        jsonl_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(jsonl_path)
+        import_jsonl_to_sqlite(jsonl_path, "./jsonl_data_to_db/data/qa_data.db")
+        return 'File successfully uploaded and data imported to SQLite.', 200
 
 
 if __name__ == "__main__":
