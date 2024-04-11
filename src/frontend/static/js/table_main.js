@@ -1,6 +1,5 @@
 let newAnswerEditor = null;
-let isCSV = false;
-let uploadfileName = "";
+let upload_file_name = "";
 
 // Toggle Edit or Save Question buttons
 function toggleQuestionEditor(item_id) {
@@ -19,10 +18,13 @@ function toggleQuestionEditor(item_id) {
         })
             .then(response => response.json())
             .then(data => {
+                showToast(data.message, false); // Handle success or error message
                 console.log(data.message); // Handle success or error message
+                //     TODO : Add a toast message here
             })
             .catch(error => {
                 console.error('Error:', error);
+                showToast('Error updating question : ' + error, true); // Handle success or error message
             });
 
         questionDiv.setAttribute('contenteditable', 'false');
@@ -45,6 +47,33 @@ function toggleQuestionEditor(item_id) {
     }
 }
 
+function showToast(message, isError = false) {
+    // Create a div element for the toast
+    let toast = document.createElement('div');
+    toast.className = 'toast fixed bottom-0 right-0 m-6 p-4 rounded-md transition duration-500';
+
+    // Add classes for the appearance of the toast based on whether it's an error or not
+    if (isError) {
+        toast.className += ' bg-red-500 text-white';
+    } else {
+        toast.className += ' bg-green-500 text-white';
+    }
+
+    // Set the text of the toast to the message
+    toast.textContent = message;
+
+    // Append the toast to the body
+    document.body.appendChild(toast);
+
+    // Remove the toast after 3 seconds
+    setTimeout(() => {
+        toast.className += ' opacity-0';
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 500);
+    }, 3000);
+}
+
 // Toggle Answer edit or save buttons
 function toggleAnswerEditor(item_id) {
     console.log('Toggling editor for item ID ' + item_id);
@@ -53,7 +82,7 @@ function toggleAnswerEditor(item_id) {
     let editAnswerButton = document.getElementById('edit-a-btn-' + item_id);
     if (contentDiv.getAttribute('contenteditable') === 'true') {
         // Switch to "Save" mode
-        let data = editorInstance.getData();
+        let data = editorInstance.getData("");
         console.log("Edited html -- ", data);
         fetch('/update_answer', {
             method: 'POST', headers: {
@@ -65,14 +94,17 @@ function toggleAnswerEditor(item_id) {
             .then(response => {
                 if (response.ok) {
                     // Data saved successfully, you can show a success message if needed
-                    console.log('Content saved successfully');
+                    // console.log('Content saved successfully');
+                    showToast('Content saved successfully', false); // Handle success or error message
                 } else {
                     // Handle errors
-                    console.error('Error saving content');
+                    // console.error('Error saving content');
+                    showToast('Error saving content', true); // Handle success or error message
                 }
             })
             .catch(error => {
-                console.error('Network error:', error);
+                // console.error('Network error:', error);
+                showToast('Network error: ' + error, true); // Handle success or error message
             });
         editorInstance.destroy(); // Destroy the editor instance
         contentDiv.setAttribute('contenteditable', 'false');
@@ -106,8 +138,10 @@ function toggleAnswerEditor(item_id) {
 function showUploadFilePopup(e) {
     console.log('---- showUploadFilePopup ----', e, e.target.id);
     document.getElementById('upload-file-popup').classList.remove('hidden');
+    document.getElementById('file-error').classList.add('hidden');
+    document.getElementById('drop-zone').classList.remove("hidden")
+    document.getElementById('file-name').classList.add("hidden")
 
-    isCSV = e.target.id === "import-csv-link" ? true : false;
 }
 
 // Function to hide the upload file popup
@@ -139,7 +173,7 @@ function saveNewRow() {
     let question = document.getElementById('new-question').value;
     let answer = newAnswerEditor.getData();
 
-    fetch('/add', {
+    fetch('/add_question', {
         method: 'POST', headers: {
             'Content-Type': 'application/json',
         }, body: JSON.stringify({
@@ -151,7 +185,6 @@ function saveNewRow() {
             console.log('Success:', data);
             // After an add, update, or delete operation
             window.location.reload();
-
             // Optionally, update the table here to show the new row
             // You might need to write a function to update the DOM
         })
@@ -164,15 +197,15 @@ function saveNewRow() {
 
 // Function to handle Delete QA Pair
 function deleteQAPair(item_id) {
-    if (item_id == 1) {
-        alert("Cannot delete this row");
+    table_field = document.getElementById('qa-table');
+    // Prevent deletion of the first row if there are only two rows
+    if (item_id === 1 && table_field.rows.length <= 2) {
+        showToast('Cannot delete the first row since there are only 2 rows', true); // Handle success or error message
         return;
-    }
-
-    if (item_id > 2) {
+    } else {
         console.log('Deleting item ID ' + item_id);
         if (confirm("Are you sure you want to delete this item?")) {
-            fetch('/delete/' + item_id, {
+            fetch('/delete_question/' + item_id, {
                 method: 'DELETE',
             })
                 .then(response => response.json())
@@ -196,13 +229,14 @@ function handleUploadFilePopup(event) {
     if (document.getElementById('drop-zone').classList.contains("hidden")) {
         alert(" Processing the file now ")
     } else {
-        uploadfileName = event.target.files[0].name;
-        console.log('Selected file:', uploadfileName);
+        upload_file_name = event.target.files[0].name;
+        console.log('Selected file:', upload_file_name);
         document.getElementById('drop-zone').classList.add("hidden")
         document.getElementById('file-name').classList.remove("hidden")
         document.getElementById('upload-btn').classList.add("hidden")
         document.getElementById('process-btn').classList.remove("hidden")
-        document.getElementById('file-name').textContent = uploadfileName;
+        document.getElementById('reset-btn').classList.remove("hidden")
+        document.getElementById('file-name').textContent = upload_file_name;
 
     }
 }
@@ -212,39 +246,65 @@ function processUploadedFile(event) {
     let formData = new FormData();
     let fileInput = document.getElementById('dropzone-file');
     let file = fileInput.files[0];
-    formData.append('file', file, uploadfileName); // append the file to the FormData object
-    // if file is csv then call the function to convert csv to jsonl
-    if (uploadfileName.endsWith(".csv")) {
-        // Call the api to convert the csv to jsonl.
-        fetch('/csv_to_jsonl', {
+    formData.append('file', file, upload_file_name); // append the file to the FormData object
+
+    if (upload_file_name.endsWith(".csv")) {
+        // If the file is a CSV, convert it to JSONL and then import it to the database
+        fetch('/convert_csv_to_jsonl', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.blob())
+            .then(data => {
+                // The response is a Blob object containing the JSONL file
+                // Create a new FormData object to send the JSONL file to the import_jsonl endpoint
+                let jsonlFormData = new FormData();
+                jsonlFormData.append('file', data, upload_file_name.replace('.csv', '.jsonl'));
+                return fetch('/import_jsonl_to_sqlite', {
+                    method: 'POST',
+                    body: jsonlFormData
+                });
+            })
+            .then(response => response.text())
+            .then(data => {
+                console.log('CSV to JSONL conversion and import response:', data);
+                document.getElementById('file-error').textContent = "\n" + data;
+                document.getElementById('file-error').classList.remove("hidden");
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                document.getElementById('file-error').textContent = "\n" + error;
+                document.getElementById('file-error').classList.remove("hidden");
+            });
+    } else if (upload_file_name.endsWith(".jsonl")) {
+        // If the file is a JSONL, directly import it to the database
+        fetch('/import_jsonl_to_sqlite', {
             method: 'POST',
             body: formData
         })
             .then(response => response.text())
             .then(data => {
-                console.log('CSV to JSONL conversion response:', data);
+                document.getElementById('file-error').textContent = "\n" + data;
+                document.getElementById('file-error').classList.remove("hidden");
             })
             .catch((error) => {
-                console.error('Error:', error);
+                document.getElementById('file-error').textContent = "\n" + error;
+                document.getElementById('file-error').classList.remove("hidden");
             });
-
-    } else if (uploadfileName.endsWith(".jsonl")) {
-        // Call the api to process the jsonl file and dump it into the database
-        fetch('/import_jsonl', {
-            method: 'POST',
-            body: formData
-        })
-            .then(response => response.text())
-            .then(data => {
-                console.log('JSONL import response:', data);
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-            });
-
     } else {
         alert("Please select a CSV or JSONL file")
     }
+}
+
+function resetUploadFilePopup() {
+    document.getElementById('drop-zone').classList.remove("hidden")
+    document.getElementById('file-name').classList.add("hidden")
+    document.getElementById('upload-btn').classList.remove("hidden")
+    document.getElementById('process-btn').classList.add("hidden")
+    document.getElementById('reset-btn').classList.add("hidden")
+    document.getElementById('file-name').textContent = "";
+    document.getElementById('dropzone-file').value = "";
+
 }
 
 window.onload = function () {
@@ -261,6 +321,7 @@ window.onload = function () {
 // Event listener for 'Cancel' button in the popup
     document.getElementById('cancel-btn').addEventListener('click', hidePopup);
     document.getElementById('process-btn').addEventListener('click', processUploadedFile);
+    document.getElementById('reset-btn').addEventListener('click', resetUploadFilePopup);
 
 // Event listener for 'Save' button in the popup
     document.getElementById('save-btn').addEventListener('click', saveNewRow);
@@ -273,5 +334,4 @@ window.onload = function () {
     });
 
     document.getElementById('dropzone-file').addEventListener('change', handleUploadFilePopup);
-    console.log("JS Loaded --------------------------------")
 }

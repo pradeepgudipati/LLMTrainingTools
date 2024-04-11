@@ -161,7 +161,7 @@
                                 or drag and drop</p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">CSV / JSONL</p>
                         </div>
-                        <input id="dropzone-file" type="file" class="hidden" accept=".csv, .json, .jsonl"/>
+                        <input id="dropzone-file" type="file" class="hidden" accept=".csv, .jsonl"/>
                     </label>
                 </div>
                 <div class="items-center px-4 py-3">
@@ -170,8 +170,13 @@
                     </button>
                     <button id="upload-btn" class="px-4 py-1 text-white bg-blue-500 rounded hover:bg-blue-600">Upload
                     </button>
-                    <button id="process-btn" class="hidden px-4 py-1 text-white bg-blue-500 rounded hover:bg-blue-600">Process
+                    <button id="reset-btn" class="hidden px-4 py-1 text-white bg-red-500 rounded hover:bg-red-600">
+                        Reset
                     </button>
+                    <button id="process-btn" class="hidden px-4 py-1 text-white bg-blue-500 rounded hover:bg-blue-600">
+                        Process
+                    </button>
+
                 </div>
             </div>
         </div>
@@ -191,7 +196,7 @@
 
     </div>
     <div class="bg-white shadow-md rounded my-6 overflow-x-auto">
-        <table class="min-w-full leading-normal custom-table-layout">
+        <table id="qa-table" class="min-w-full leading-normal custom-table-layout">
             <thead>
             <tr>
                 <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider col-id">

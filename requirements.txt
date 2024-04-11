@@ -1,2 +1,3 @@
-flask
+flask~=3.0.3
 flask-sqlalchemy
+Werkzeug~=3.0.2
