@@ -60,9 +60,10 @@ Now Open the below URL in your favorite browser - http://127.0.0.1:5000
 ###  Now to export all these QA pairs in the Db into a JSONL file, run the following command
 
 1. First verify the paths to the files : JSONL and DB  in the [db_to_jsonl.py](jsonl_data_to_db%2Fdb_to_jsonl.py)
+
 ```python
 # Paths for the JSONL file and SQLite database
-jsonl_file_path = "data/qa_data.jsonl"
+jsonl_file_path = "jsonl_data_to_db/data/qa_data.jsonl"
 sqlite_db_path = "data/merged_data.db"
 ```
 2. Now run the following command in the terminal to execute the code
@@ -75,7 +76,7 @@ python db_to_jsonl.py
 1. First verify the jsonl and db paths in the [jsonl_to_sqllite.py](jsonl_data_to_db%2Fjsonl_to_sqllite.py)
 
 ```python
-jsonl_file_path = "data/qa_data.jsonl"
+jsonl_file_path = "jsonl_data_to_db/data/qa_data.jsonl"
 sqlite_db_path = "data/qa_data.db"
 ```
 2. Now run the following command in the terminal to execute the code

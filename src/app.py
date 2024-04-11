@@ -12,9 +12,7 @@ from src.models.llm_training_data_model import LLMDataModel
 from src.utils import validate_jsonl_file, validate_csv_file, save_file
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-print(f"BASE_DIR: {BASE_DIR}")
-# ".." in the path means go up one directory
-DB_PATH = os.path.join(BASE_DIR, "../jsonl_data_to_db/data/qa_data.db")
+DB_PATH = os.path.join(BASE_DIR, "data/qa_data.db")
 print(f"DB_PATH: {DB_PATH}")
 app = Flask(__name__, template_folder="frontend/templates", static_folder="frontend/static")
 app.config["SECRET_KEY"] = (
