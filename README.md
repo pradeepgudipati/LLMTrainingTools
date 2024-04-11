@@ -2,27 +2,37 @@
 
 LLMTrainingTools provides a suite of utilities designed to facilitate the creation and management of training data for language learning models (LLMs), particularly chatbots. It offers tools for converting data between JSONL and SQLite formats, editing training data through a web interface, and converting CSV files to JSONL.
 
-# Features
-### - **JSONL and SQLite Conversion**: Convert data between JSONL files and SQLite databases.
+# Key Features
 ### - **Flask UI for Data Editing**: A web application for easy editing of training data.
 ### - **CSV to JSONL Conversion**: Convert CSV files to JSONL format for LLM training.
+### - **JSONL and SQLite Conversion**: Convert data between JSONL files and SQLite databases.
 
 
 ## Getting Started
  - Python 3.6 or above
  - Pip
- - An IDE (PyCharm preferred) VSCode also ok
- - SQLite
+ - An IDE (PyCharm preferred) VSCode also ok 
+    
+### Dependencies 
+   - SQLite : For the Database operations
+   - Flask : For the Web UI and API 
+   - Flask SQLAlchemy & SQLAlchemy : For the SQLite DB operations
+   - Jinja2 - For rendering the HTML templates
 
 ## Installation
 
 Clone the repository and install the required Python packages:
+
+***For Windows***
 ```bash 
 git clone https://github.com/pradeepgudipati/LLMTrainingTools.git
 cd LLMTrainingTools
+python -m venv llmtraining
+./llmtraining/Scripts/activate
 pip install -r requirements.txt
-
 ```
+***For Other platforms please adjust above commands***
+
 
 # Usage
 
@@ -54,8 +64,19 @@ Now Open the below URL in your favorite browser - http://127.0.0.1:5000
 ![screenshot.png](screenshot.png)
 
 ###  Now to export all these QA pairs in the Db into a JSONL file, run the following command
+1. If you have a Question answer CSV base you can convert it to JSONL and then import it to the SQLite DB
+2. Click on the "CSV to JSONL" button at the top. Once the conversion is done, you will see a message "CSV to JSONL Conversion Done"
+3. Now Import the JSONL into the DB file (SQLite) by clicking on the "Import JSONL to DB" button. Once the import is done, you will see a message "Import JSONL to DB Done"
+4. Now you can see the data in the table view. You can edit the data and save it back to the DB by clicking on the "Save to DB" button. Once the save is done, you will see a message "Data Saved to DB"
+5. Now to export the data from the DB to JSONL, click on the "Export DB to JSONL" button. Once the export is done, you will see a message "Export DB to JSONL Done"
+6. This JSONL file can now be used to train the LLM model. 
 
-1. First verify the paths to the files : JSONL and DB  in the [db_to_jsonl.py](jsonl_data_to_db%2Fdb_to_jsonl.py)
+# Optional 
+
+###  1. Convert the DB file to JSONL
+1. Code for DB to JSONL is in [db_to_jsonl.py](jsonl_data_to_db%2Fdb_to_jsonl.py).
+Verify the path for the jsonl and db files in the code
+
 ```python
 # Paths for the JSONL file and SQLite database
 jsonl_file_path = "data/qa_data.jsonl"
@@ -66,20 +87,20 @@ sqlite_db_path = "data/merged_data.db"
 ```bash
 python db_to_jsonl.py
 ```
-###  Now to convert the JSONL file to DB, run the following command
+###  2. Convert the JSONL file to DB
 
 1. First verify the jsonl and db paths in the [jsonl_to_sqllite.py](jsonl_data_to_db%2Fjsonl_to_sqllite.py)
 
 ```python
-jsonl_file_path = "data/qa_data.jsonl"
+jsonl_file_path = "jsonl_data_to_db/data/qa_data.jsonl"
 sqlite_db_path = "data/qa_data.db"
 ```
-2. Now run the following command in the terminal to execute the code
+2. Run the following command in the terminal to execute the code
 ```bash 
 python jsonl_to_sqllite.py
 ```
 
-###  Now to convert the CSV file to JSONL, run the following command
+### 3. Convert the CSV file to JSONL
 
 1. First verify the jsonl and csv paths in the[csv_to_jsonl.py](jsonl_data_to_db%2Fcsv_to_jsonl.py)
  - If you have multiple CSV files then use the below path variable 
@@ -87,10 +108,9 @@ python jsonl_to_sqllite.py
 # Paths
 csv_files_path = './docs'
 output_jsonl_file = 'training_data.jsonl'
-# Uncomment the line below to process all CSV files in a folder
 convert_folder_csv_to_jsonl(csv_files_path, output_jsonl_file)
 ``` 
- - IF you have only 1 CSV file 
+ - If you have only 1 CSV file 
 ```python
 # Paths
 csv_files_path = './training_data.csv'
@@ -139,7 +159,7 @@ The format of the jsonl is as follows
 
 ### 3. Flask Application for editing the training data
 
-- Flask Server App Code - [app.py](app.py)
+- Flask Server App Code - [app.py](src/app.py)
 - Flask HTML Template - [table_view.html](templates%2Ftable_view.html)
 - Data Model [llm_training_data_model.py](models%2Fllm_training_data_model.py)
 
@@ -152,6 +172,13 @@ The format of the jsonl is as follows
 - CSV to JSONL Converter -  [csv_to_jsonl.py](jsonl_data_to_db%2Fcsv_to_jsonl.py)
 
 ## Running the application 
+Start the Flask server by running the below command in the terminal
+```bash
+ python app.py
+```
+Access the Web UI by opening the below URL in your favorite browser
+http://localhost:5000
+
 
 
 # Contributing

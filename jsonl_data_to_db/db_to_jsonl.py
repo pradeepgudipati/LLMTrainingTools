@@ -3,7 +3,7 @@ import os
 import sqlite3
 
 
-def sqllite_to_jsonl(sql_file_path, jsonl_path, table_name):
+def sqlite_to_jsonl(sql_file_path, jsonl_path, table_name):
     print(f"sqllite_to_jsonl   sql_file_path: {sql_file_path} jsonl_path: {jsonl_path}")
 
     # Check if the SQLite database file exists
@@ -24,7 +24,8 @@ def sqllite_to_jsonl(sql_file_path, jsonl_path, table_name):
             f"SELECT User, Assistant FROM {table_name}"  # Replace with your table name
         )
         cursor.execute(query)
-
+        # Print the number of rows fetched
+        print(f"Number of rows fetched: {cursor.rowcount}")
         # Open a file to write
         with open(jsonl_path, "w") as file:
             for row in cursor.fetchall():
@@ -44,12 +45,11 @@ def sqllite_to_jsonl(sql_file_path, jsonl_path, table_name):
         print(f"Exception: {e}")
         return False
 
-
-# Paths for the JSONL file and SQLite database
-jsonl_file_path = "data/qa_data.jsonl"
-sqlite_db_path = "data/merged_data.db"
-# print CWD
-print(f"CWD: {os.getcwd()}")
-
-# Call the function
-sqllite_to_jsonl(sqlite_db_path, jsonl_file_path, "messages")
+# # Paths for the JSONL file and SQLite database
+# jsonl_file_path = "data/qa_data.jsonl"
+# sqlite_db_path = "data/merged_data.db"
+# # print CWD
+# print(f"CWD: {os.getcwd()}")
+#
+# # Call the function
+# sqllite_to_jsonl(sqlite_db_path, jsonl_file_path, "messages")

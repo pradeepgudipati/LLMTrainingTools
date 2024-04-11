@@ -1,0 +1,50 @@
+.html-content {
+    min-height: 100px;
+}
+
+/* CSS class for CKEditor field in edit mode */
+.editing {
+    background-color: cornsilk !important;
+}
+
+.not-editing {
+    background-color: white !important;
+}
+
+.custom-table-layout {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.col-id {
+    width: 5%;
+}
+
+.col-question {
+    width: 20%;
+}
+
+.col-answer {
+    width: 65%;
+}
+
+.col-action {
+    width: 10%;
+}
+
+.popup-custom-width {
+    width: 80%; /* or any other value */
+}
+
+/* Add position: relative to the parent element of the dropdown menu */
+nav ul li {
+    position: relative;
+}
+
+/* Position the dropdown menu absolutely relative to the parent element */
+#dropdownNavbar {
+    position: absolute;
+    top: 100%; /* Position it at the bottom of the parent element */
+    left: 0; /* Align it to the left of the parent element */
+    z-index: 1; /* Ensure it appears above other elements */
+}

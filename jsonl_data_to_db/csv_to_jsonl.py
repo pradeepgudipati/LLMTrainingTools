@@ -47,14 +47,14 @@ def write_to_jsonl(data, output_file):
             jsonl_output.write(json.dumps(each_data) + "\n")
 
 
-# Paths
-csv_files_path = "./docs"
-output_jsonl_file = "training_data.jsonl"
-# Uncomment the line below to process a single CSV file
-# convert_single_csv_to_jsonl(csv_file_path, output_jsonl_file)
-
-# Uncomment the line below to process all CSV files in a folder
-# convert_folder_csv_to_jsonl(csv_files_path, output_jsonl_file)
-print(
-    f"Finished converting all CSV files in path --  {csv_files_path}  to JSONL: {output_jsonl_file}"
-)
+# # Paths
+# csv_files_path = "./docs"
+# output_jsonl_file = "training_data.jsonl"
+# # Uncomment the line below to process a single CSV file
+# # convert_single_csv_to_jsonl(csv_file_path, output_jsonl_file)
+#
+# # Uncomment the line below to process all CSV files in a folder
+# # convert_folder_csv_to_jsonl(csv_files_path, output_jsonl_file)
+# print(
+#     f"Finished converting all CSV files in path --  {csv_files_path}  to JSONL: {output_jsonl_file}"
+# )
