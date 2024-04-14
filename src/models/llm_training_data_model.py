@@ -17,3 +17,11 @@ class LLMDataModel(db.Model):
 
     def __repr__(self):
         return f"<LLMDataModel {self.id}>"
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user': self.user,
+            'assistant': self.assistant,
+            # include other fields here
+        }

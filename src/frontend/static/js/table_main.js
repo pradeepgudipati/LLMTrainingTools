@@ -304,6 +304,7 @@ function resetUploadFilePopup() {
     document.getElementById('reset-btn').classList.add("hidden")
     document.getElementById('file-name').textContent = "";
     document.getElementById('dropzone-file').value = "";
+    document.getElementById('file-error').classList.add("hidden");
 
 }
 
