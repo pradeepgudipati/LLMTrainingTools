@@ -8,10 +8,11 @@ from jsonl_data_to_db.csv_to_jsonl import convert_single_csv_to_jsonl
 from jsonl_data_to_db.db_to_jsonl import sqlite_to_jsonl
 from jsonl_data_to_db.jsonl_to_sqllite import import_jsonl_to_sqlite
 from src.data_tools.clean_data_in_db import clean_items
+from src.data_tools.database_utils import backup_db
+from src.data_tools.db_init import db
 from src.data_tools.duplicate_checker import check_duplicates
-from src.db_init import db
 from src.models.llm_training_data_model import LLMDataModel
-from src.utils import validate_jsonl_file, validate_csv_file, save_file, backup_db
+from src.utils import validate_jsonl_file, validate_csv_file, save_file
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "data/qa_data.db")
@@ -190,8 +191,9 @@ def jsonl_to_db():
     if file:
         upload_folder = app.config['UPLOAD_FOLDER']
         jsonl_path = save_file(file, upload_folder)
-        sqlite_path = "./jsonl_data_to_db/data/qa_data.db"  # Replace with your SQLite database path
+        sqlite_path = "data/qa_data.db"  # Replace with your SQLite database path
         try:
+            backup_db(DB_PATH)
             import_jsonl_to_sqlite(jsonl_path, sqlite_path)
             return send_file(sqlite_path, as_attachment=True)  # Send the SQLite file to the client
         except Exception as e:
@@ -294,6 +296,36 @@ def clean_items_api():
     db.session.commit()
     db.session.close()
     return jsonify({'items': items_json, 'count': count, 'message': 'Questions cleaned successfully.'})
+
+
+# Backup database and return the db file for download
+@app.route('/backup_db', methods=['GET'])
+def backup_database():
+    backup_file = backup_db(DB_PATH)
+    return send_file(backup_file, as_attachment=True)
+
+
+# API to restore a database from a backup file
+@app.route('/restore_db', methods=['POST'])
+def restore_database():
+    # Check if the post request has the file part
+    if 'file' not in request.files:
+        return 'No file part in the request.', 400
+
+    file = request.files['file']
+    # If the user does not select a file, the browser submits an
+    # empty file without a filename.
+    if file.filename == '':
+        return 'No selected file.', 400
+
+    if file:
+        try:
+            backup_file_path = save_file(file, app.config['UPLOAD_FOLDER'])
+            # Now replace the current DB with the backup
+            restored_db_path = backup_db(DB_PATH, backup_file_path)
+            return send_file(restored_db_path, as_attachment=True)
+        except Exception as e:
+            return f"Error restoring database: {e}", 500
 
 
 if __name__ == "__main__":

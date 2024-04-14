@@ -1,8 +1,8 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+from src.data_tools.database_utils import get_all_items
 from src.models.llm_training_data_model import LLMDataModel
-from src.utils import get_all_items
 
 
 # Function to preprocess the text - convert all questions or answers to lower

@@ -1,55 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Include Tailwind CSS from CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.ckeditor.com/4.16.0/standard/ckeditor.js"></script>
-
-    <title>LLM Training Tools</title>
-    <style src="{{ url_for('static', filename='css/styles.css') }}"></style>
-</head>
+{% include 'header.html' %}
 <body class="bg-gray-100">
-
-
-<nav class="bg-white border-gray-200 dark:bg-gray-900">
-    <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
-        <a href="https://flowbite.com/" class="flex items-center space-x-3 rtl:space-x-reverse">
-            <img src="{{ url_for('static', filename='res/logo.png') }}" class="h-8" alt="Logo"/>
-            <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">LLM Training Tools </span>
-        </a>
-        <button data-collapse-toggle="navbar-default" type="button"
-                class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
-                aria-controls="navbar-default" aria-expanded="false">
-            <span class="sr-only">Menu</span>
-            <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 14">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M1 1h15M1 7h15M1 13h15"/>
-            </svg>
-        </button>
-        <div class="hidden w-full md:block md:w-auto" id="navbar-default">
-            <ul class="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700">
-                <li>
-                    <a id="import-csv-link"
-                       class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">CSV
-                        to JSONL</a>
-                </li>
-                <li>
-                    <a id="import-jsonl-link"
-                       class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">
-                        Import JSONL to DB</a>
-                </li>
-                <li>
-                    <a href="{{ url_for('export_jsonl') }}"
-                       class="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent">
-                        Export to JSONL</a>
-                </li>
-            </ul>
-        </div>
-    </div>
-</nav>
-
+{% include 'navbar.html' %}
+<!-- Popup Form for New Row -->
+{% include 'add_new_row.html' %}
+<!-- Upload File Popup -->
+{% include 'upload_file.html' %}
 <!-- This is the file upload form that will be displayed when the "Import JSONL to DB" button is clicked -->
 <div id="import-jsonl-form" style="display: none;">
     <form action="{{ url_for('jsonl_to_sqlite') }}" method="post" enctype="multipart/form-data">
@@ -115,70 +72,6 @@
                     Search
                 </button>
             </form>
-        </div>
-    </div>
-    <!-- Popup Form for New Row -->
-    <div id="new-row-popup"
-         class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white popup-custom-width">
-            <div class="mt-3 text-center">
-                <h3 class="text-lg leading-6 font-medium text-gray-900">Add New Question and Answer</h3>
-                <div class="mt-xl-3 px-7 py-3">
-                    <input type="text" id="new-question" placeholder="Enter question"
-                           class="mb-3 px-2 py-1 border rounded w-full"/>
-                    <textarea id="new-answer" placeholder="Enter answer"
-                              class="mb-3 px-2 py-1 border rounded w-full"></textarea>
-
-                </div>
-                <div class="items-center px-4 py-3">
-                    <button id="cancel-btn" class="px-4 py-1 text-white bg-gray-500 rounded hover:bg-gray-600 mr-2">
-                        Cancel
-                    </button>
-                    <button id="save-btn" class="px-4 py-1 text-white bg-blue-500 rounded hover:bg-blue-600">Save
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Popup Form for Upload file -->
-    <div id="upload-file-popup" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white popup-custom-width">
-            <div class="mt-3 text-center">
-                <h3 class="text-lg leading-6 font-medium text-gray-900">Upload File</h3>
-                <span id="file-name" class="hidden text-lg font-medium text-gray-900 dark:text-white"></span>
-                <span id="file-error" class="hidden text-lg font-medium text-red-900 dark:text-white"></span>
-                <div id="drop-zone" class="mt-xl-3 px-7 py-3">
-                    <label for="dropzone-file"
-                           class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
-                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                            <svg class="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true"
-                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                                      stroke-width="2"
-                                      d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
-                            </svg>
-                            <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span class="font-semibold">Click to upload</span>
-                                or drag and drop</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">CSV / JSONL</p>
-                        </div>
-                        <input id="dropzone-file" type="file" class="hidden" accept=".csv, .jsonl"/>
-                    </label>
-                </div>
-                <div class="items-center px-4 py-3">
-                    <button id="cancel-upload-btn"
-                            class="px-4 py-1 text-white bg-gray-500 rounded hover:bg-gray-600 mr-2">Cancel
-                    </button>
-                    <button id="upload-btn" class="px-4 py-1 text-white bg-blue-500 rounded hover:bg-blue-600">Upload
-                    </button>
-                    <button id="reset-btn" class="hidden px-4 py-1 text-white bg-red-500 rounded hover:bg-red-600">
-                        Reset
-                    </button>
-                    <button id="process-btn" class="hidden px-4 py-1 text-white bg-blue-500 rounded hover:bg-blue-600">
-                        Process
-                    </button>
-
-                </div>
-            </div>
         </div>
     </div>
 

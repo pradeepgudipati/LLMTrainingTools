@@ -5,7 +5,10 @@ LLMTrainingTools provides a suite of utilities designed to facilitate the creati
 # Key Features
 ### - **Flask UI for Data Editing**: A web application for easy editing of training data.
 ### - **CSV to JSONL Conversion**: Convert CSV files to JSONL format for LLM training.
-### - **JSONL and SQLite Conversion**: Convert data between JSONL files and SQLite databases.
+### - **Export and Import Data**: Export data from the database to JSONL and import JSONL data into the database.
+### - **Backup Data**: Backup the SQLite database to JSONL format for safekeeping or as SQL dump.
+
+
 
 
 ## Getting Started

@@ -6,7 +6,7 @@
 
 # llm_training_data_model.py
 
-from src.db_init import db
+from src.data_tools.db_init import db
 
 
 class LLMDataModel(db.Model):
