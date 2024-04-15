@@ -95,7 +95,7 @@ python db_to_jsonl.py
 1. First verify the jsonl and db paths in the [jsonl_to_sqllite.py](jsonl_data_to_db%2Fjsonl_to_sqllite.py)
 
 ```python
-jsonl_file_path = "jsonl_data_to_db/data/qa_data.jsonl"
+jsonl_file_path = "src/data_tools/import_utils/data/qa_data.jsonl"
 sqlite_db_path = "data/qa_data.db"
 ```
 2. Run the following command in the terminal to execute the code

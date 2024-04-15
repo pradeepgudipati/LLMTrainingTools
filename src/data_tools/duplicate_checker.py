@@ -12,10 +12,9 @@ def preprocess_text_items(items, is_question=True):
     count = 0
     if is_question:
         for item in items:
-
             # Append the question to the questions list after removing any leading or trailing whitespaces and
             #  removing - Category: * ; Question: from the question = * means any character string
-            ques = item.user
+            ques = item.question
             if ":" in ques:
                 ques = ques.rsplit(":", 1)[1].strip()
                 questions.append(ques.lower())
@@ -26,7 +25,7 @@ def preprocess_text_items(items, is_question=True):
     else:
         for item in items:
             # Append the answer to the answers list after removing any leading or trailing whitespaces
-            answers = item.assistant
+            answers = item.answer
             answers.append(answers.lower())
             count += 1
         return answers
@@ -37,7 +36,7 @@ def vectorize_items(items):
     # Initialize a TfidfVectorizer
     vectorizer = TfidfVectorizer()
     # print the top 10 questions
-    print(items[:10])
+    print(f"Top 10 vectors -- {items[:10]}")
     # Vectorize the questions
     items_vectors = vectorizer.fit_transform(items)
     # Now, question_vectors is a matrix where each row represents a different question

@@ -1,16 +1,16 @@
 import os
 from math import ceil
 
-from flask import Flask, render_template, request, jsonify, session, app
+from flask import Flask, render_template, request, jsonify, session, app, redirect, url_for
 from flask import send_file
 
-from jsonl_data_to_db.csv_to_jsonl import convert_single_csv_to_jsonl
-from jsonl_data_to_db.db_to_jsonl import sqlite_to_jsonl
-from jsonl_data_to_db.jsonl_to_sqllite import import_jsonl_to_sqlite
 from src.data_tools.clean_data_in_db import clean_items
 from src.data_tools.database_utils import backup_db
 from src.data_tools.db_init import db
 from src.data_tools.duplicate_checker import check_duplicates
+from src.data_tools.import_utils.csv_to_jsonl import convert_single_csv_to_jsonl
+from src.data_tools.import_utils.db_to_jsonl import sqlite_to_jsonl
+from src.data_tools.import_utils.jsonl_to_sqllite import import_jsonl_to_sqlite, test_jsonl_to_sqlite
 from src.models.llm_training_data_model import LLMDataModel
 from src.utils import validate_jsonl_file, validate_csv_file, save_file
 
@@ -76,9 +76,9 @@ def index(page=None):
     # Construct the query based on filters
     query = LLMDataModel.query
     if query_qa:
-        query = query.filter(LLMDataModel.user.contains(query_qa))
+        query = query.filter(LLMDataModel.question.contains(query_qa))
     if query_ans:
-        query = query.filter(LLMDataModel.assistant.contains(query_ans))
+        query = query.filter(LLMDataModel.answer.contains(query_ans))
 
     # Apply pagination
     data = query.paginate(page=page, per_page=per_page, error_out=False)
@@ -101,7 +101,7 @@ def save_content(item_id):
     content = request.form["content"]
     item = LLMDataModel.query.get(item_id)
     if item:
-        item.assistant = content
+        item.answer = content
         db.session.commit()
         return jsonify(status="success", message="Content saved.")
     return jsonify(status="error", message="Item not found.")
@@ -117,9 +117,9 @@ def update_answer():
 
     # Update the content in the database based on 'item_id'
     item = LLMDataModel.query.get(item_id)
-    print(f"Item: {item} , Assistant content -- {item.assistant}")
+    print(f"Item: {item} , Assistant content -- {item.answer}")
     if item:
-        item.assistant = content
+        item.answer = content
         db.session.commit()
         db.session.close()
         return "Content updated successfully", 200
@@ -131,7 +131,7 @@ def update_answer():
 @app.route("/add_question", methods=["POST"])
 def add_new_qa():
     data = request.json
-    new_item = LLMDataModel(user=data["user"], assistant=data["assistant"])
+    new_item = LLMDataModel(user=data["question"], assistant=data["answer"])
     print(f"Adding new item: {new_item}")
     db.session.add(new_item)
     db.session.commit()
@@ -167,7 +167,7 @@ def update_question():
         if not item:
             return jsonify(status="error", message="Item not found."), 404
 
-        item.user = new_question
+        item.question = new_question
         db.session.commit()
         return jsonify(status="success", message="Question updated successfully.")
     except Exception as ex:
@@ -191,13 +191,16 @@ def jsonl_to_db():
     if file:
         upload_folder = app.config['UPLOAD_FOLDER']
         jsonl_path = save_file(file, upload_folder)
-        sqlite_path = "data/qa_data.db"  # Replace with your SQLite database path
+
         try:
             backup_db(DB_PATH)
-            import_jsonl_to_sqlite(jsonl_path, sqlite_path)
-            return send_file(sqlite_path, as_attachment=True)  # Send the SQLite file to the client
+            import_jsonl_to_sqlite(jsonl_path, DB_PATH)
+            test_jsonl_to_sqlite(jsonl_path, DB_PATH)
+            backup_db(DB_PATH)
         except Exception as e:
             return f"Error converting JSONL to SQLite: {e}", 500
+    #     Now refresh the page
+    return redirect(url_for('index'))
 
 
 # API for converting CSV to JSONL
@@ -216,7 +219,7 @@ def csv_to_jsonl():
 
     if file:
         csv_path = save_file(file, app.config['UPLOAD_FOLDER'])
-        jsonl_path = "./jsonl_data_to_db/data/qa_data.jsonl"  # Replace with your JSONL file path
+        jsonl_path = "data_tools/import_utils/data/qa_data.jsonl"  # Replace with your JSONL file path
         try:
             if validate_csv_file(csv_path):
                 convert_single_csv_to_jsonl(csv_path, jsonl_path)
@@ -262,7 +265,7 @@ def jsonl_to_sqlite():
             jsonl_path = save_file(file, app.config['UPLOAD_FOLDER'])
             if validate_jsonl_file(jsonl_path):
                 backup_db(DB_PATH)
-                import_jsonl_to_sqlite(jsonl_path, "./jsonl_data_to_db/data/qa_data.db")
+                import_jsonl_to_sqlite(jsonl_path, "qa_data.db")
                 return 'File successfully uploaded and data imported to SQLite.', 200
             else:
                 return 'Invalid JSONL file.', 400
@@ -289,6 +292,13 @@ def duplicate_checker():
         count=len(similar_items_indices),
         per_page=session["per_page"],
     )
+
+
+# API for checking duplicates in the questions or answers from the database.
+# The API will have true or false in the request
+@app.route('/duplicate_checker_v2', methods=['GET'])
+def duplicate_checker_vectors():
+    pass
 
 
 # API for cleaning the questions or answers in the database

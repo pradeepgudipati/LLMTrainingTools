@@ -12,3 +12,8 @@ SQLAlchemy==2.0.29
 typing_extensions==4.11.0
 Werkzeug==3.0.2
 scikit-learn==1.4.2
+pymilvus==2.4.0
+torch==2.2.2
+transformers===4.39.3
+pydotenv==0.0.7
+pinecone-client==3.2.2

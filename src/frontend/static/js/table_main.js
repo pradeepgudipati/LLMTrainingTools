@@ -132,9 +132,11 @@ function toggleAnswerEditor(item_id) {
 function showUploadFilePopup(e) {
     console.log('---- showUploadFilePopup ----', e, e.target.id);
     document.getElementById('upload-file-popup').classList.remove('hidden');
+    document.getElementById('dropzone-file').value = "";
+    document.getElementById('file-success').classList.add('hidden');
     document.getElementById('file-error').classList.add('hidden');
+    document.getElementById('message-table').classList.add("hidden");
     document.getElementById('drop-zone').classList.remove("hidden")
-    document.getElementById('file-name').classList.add("hidden")
 
 }
 
@@ -142,6 +144,8 @@ function showUploadFilePopup(e) {
 function hideUploadFilePopup(e) {
     console.log('---- showUploadFilePopup ----', e, e.target.id);
     document.getElementById('upload-file-popup').classList.add('hidden');
+//     refresh the page
+    window.location.reload();
 }
 
 // Function to show the popup
@@ -171,7 +175,7 @@ function saveNewRow() {
         method: 'POST', headers: {
             'Content-Type': 'application/json',
         }, body: JSON.stringify({
-            user: question, assistant: answer
+            question: question, answer: answer
         }),
     })
         .then(response => response.json())
@@ -222,16 +226,21 @@ function deleteQAPair(item_id) {
 function handleUploadFilePopup(event) {
 
     if (document.getElementById('drop-zone').classList.contains("hidden")) {
-        alert(" Processing the file now ")
-    } else {
+        showToast(" Processing the file now ")
+    } else if (event.target.files && event.target.files.length > 0) {
+
+        // Comes here when the file is selected
         upload_file_name = event.target.files[0].name;
-        console.log('Selected file:', upload_file_name);
+        // Hide the dropzone and show the file name
         document.getElementById('drop-zone').classList.add("hidden")
-        document.getElementById('file-name').classList.remove("hidden")
-        document.getElementById('upload-btn').classList.add("hidden")
+        // Show the messages table
+        document.getElementById('message-table').classList.remove("hidden");
+        document.getElementById('file-name').textContent = upload_file_name;
+        document.getElementById('file-success').textContent = "Click Process to import the file";
+        document.getElementById('file-success').classList.remove("hidden");
+        // Show the file name and hide the upload button
         document.getElementById('process-btn').classList.remove("hidden")
         document.getElementById('reset-btn').classList.remove("hidden")
-        document.getElementById('file-name').textContent = upload_file_name;
 
     }
 }
@@ -265,6 +274,10 @@ function processUploadedFile(event) {
                 console.log('CSV to JSONL conversion and import response:', data);
                 document.getElementById('file-error').textContent = "\n" + data;
                 document.getElementById('file-error').classList.remove("hidden");
+                if (data.toLowerCase().includes("success")) {
+                    document.getElementById('process-btn').classList.add("hidden");
+                    document.getElementById('reset-btn').classList.add("hidden");
+                }
             })
             .catch((error) => {
                 console.error('Error:', error);
@@ -272,6 +285,7 @@ function processUploadedFile(event) {
                 document.getElementById('file-error').classList.remove("hidden");
             });
     } else if (upload_file_name.endsWith(".jsonl")) {
+        document.getElementById('message-table').classList.remove("hidden");
         // If the file is a JSONL, directly import it to the database
         fetch('/import_jsonl_to_sqlite', {
             method: 'POST',
@@ -279,8 +293,17 @@ function processUploadedFile(event) {
         })
             .then(response => response.text())
             .then(data => {
-                document.getElementById('file-error').textContent = "\n" + data;
-                document.getElementById('file-error').classList.remove("hidden");
+                console.log('JSONL import response:', data);
+
+                document.getElementById('file-success').textContent = "\n" + data;
+                document.getElementById('file-success').classList.remove("hidden");
+                document.getElementById('file-error').classList.add("hidden");
+                document.getElementById('file-error').textContent = "";
+
+                if (data.toLowerCase().includes("success")) {
+                    document.getElementById('process-btn').classList.add("hidden");
+                    document.getElementById('reset-btn').classList.add("hidden");
+                }
             })
             .catch((error) => {
                 document.getElementById('file-error').textContent = "\n" + error;
@@ -294,13 +317,11 @@ function processUploadedFile(event) {
 // Function to reset the upload file popup
 function resetUploadFilePopup() {
     document.getElementById('drop-zone').classList.remove("hidden")
-    document.getElementById('file-name').classList.add("hidden")
-    document.getElementById('upload-btn').classList.remove("hidden")
     document.getElementById('process-btn').classList.add("hidden")
     document.getElementById('reset-btn').classList.add("hidden")
     document.getElementById('file-name').textContent = "";
     document.getElementById('dropzone-file').value = "";
-    document.getElementById('file-error').classList.add("hidden");
+    document.getElementById('message-table').classList.add("hidden");
 
 }
 
@@ -329,8 +350,8 @@ window.onload = function () {
     document.getElementById('import-csv-link').addEventListener('click', showUploadFilePopup);
 
 // Event listener for 'Cancel' button in the upload file popup
-    document.getElementById('cancel-upload-btn').addEventListener('click', hideUploadFilePopup);
-    document.getElementById('upload-btn').addEventListener('click', handleUploadFilePopup);
+    document.getElementById('close-btn').addEventListener('click', hideUploadFilePopup);
+    document.getElementById('drop-zone').addEventListener('click', handleUploadFilePopup);
 // Event listener for 'Cancel' button in the popup
     document.getElementById('cancel-btn').addEventListener('click', hidePopup);
     document.getElementById('process-btn').addEventListener('click', processUploadedFile);

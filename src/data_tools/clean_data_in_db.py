@@ -10,25 +10,25 @@ def clean_items(wrong_string, is_question=True):
     count = 0
     if is_question:
         for item in items:
-            question = item.user
+            question = item.question
             # print(f"Original Question: {question}")
             # Check if the question contains the wrong string
             if wrong_string in question:
                 # Split the question by the first colon
                 question = question.split(wrong_string, 1)[1].strip()
-                item.user = question
+                item.question = question
                 # print(f"Cleaned Question: {question}")
                 count += 1
         return items, count
     else:
         for item in items:
-            answer = item.assistant
+            answer = item.answer
             # print(f"Original Answer: {answer}")
             # Check if the answer contains the wrong string
             if wrong_string in answer:
                 # Split the answer by the first colon
                 answer = answer.split(wrong_string, 1)[1].strip()
-                item.assistant = answer
+                item.answer = answer
                 # print(f"Cleaned Answer: {answer}")
                 count += 1
         return items, count

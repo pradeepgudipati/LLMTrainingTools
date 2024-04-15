@@ -115,12 +115,12 @@
                     <td id="question-{{ item.id }}"
                         class="px-5 py-5 border-b border-gray-200 bg-white text-sm col-question">
                         <div class="flex items-center" contenteditable="false">
-                            {{ item.user | safe }}
+                            {{ item.question | safe }}
                         </div>
                     </td>
                     <td class="px-5 py-5 border-b border-gray-200 bg-white text-sm col-answer">
                         <div class="html-content" id="content-{{ item.id }}" contenteditable="false">
-                            {{ item.assistant | safe }}
+                            {{ item.answer | safe }}
                         </div>
                     </td>
 
