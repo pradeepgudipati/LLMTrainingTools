@@ -276,10 +276,19 @@ def jsonl_to_sqlite():
 def duplicate_checker():
     is_question = request.args.get('isQuestion', default="true").lower() == "true"
     print(f"Is Question: {is_question}")
-    check_duplicates(is_question)
-    return 'Duplicates checked successfully.'
-    items_json = [item.to_dict() for item in items]  # Assuming each item has a to_dict() method
-    return jsonify({'items': items_json, 'count': count, 'message': 'Duplicate checked successfully.'})
+    similar_items_indices = check_duplicates(is_question)
+    print(f"Similar Items: {similar_items_indices}")
+
+    # Convert items to a format that can be JSON serialized
+    items_json = [item.to_dict() for item in similar_items_indices]  # Assuming each item has a to_dict() method
+    print(f"Items JSON: {items_json}")
+    # Pass the items to the template for rendering
+    return render_template(
+        "table_view.html",
+        data=items_json,
+        count=len(similar_items_indices),
+        per_page=session["per_page"],
+    )
 
 
 # API for cleaning the questions or answers in the database

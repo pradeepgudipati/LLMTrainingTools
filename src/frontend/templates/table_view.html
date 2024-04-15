@@ -18,7 +18,7 @@
     <!-- Flex container for both forms -->
     <div class="flex justify-end mt-4 space-x-4">
 
-        <!-- Add Row Form -->
+        <!-- Add New Row button -->
         <div class="flex justify-end mt-4">
             <button id="add-row-btn"
                     class="px-4 py-1 text-white bg-green-500 rounded hover:bg-green-600">
@@ -85,8 +85,6 @@
                 No Q&A pairs available.
             {% endif %}
         </p>
-
-
     </div>
     <div class="bg-white shadow-md rounded my-6 overflow-x-auto">
         <table id="qa-table" class="min-w-full leading-normal custom-table-layout">
@@ -158,32 +156,33 @@
             {% endfor %}
             </tbody>
         </table>
-        <div class="flex justify-end mt-4">
-            {% if data.has_prev %}
-                <a href="{{ url_for('index', page=data.prev_num) }}?per_page={{ session.get('per_page', 20) }}"
-                   class="px-4 py-2 text-sm text-blue-500">Prev</a>
-            {% endif %}
-            {% for p in data.iter_pages() %}
-                {% if p %}
-                    <a href="{{ url_for('index', page=p, per_page=session.get('per_page', 20)) }}"
-                       class="px-4 py-2 text-sm {{ 'font-bold' if p == data.page else 'text-blue-500' }}">{{ p }}</a>
-                {% else %}
-                    <span class="px-4 py-2 text-sm text-gray-500">...</span>
+        <!-- Pagination Links -->
+        {% if data.items|length > 0 %}
+            <div class="flex justify-end mt-4">
+                {% if data.has_prev %}
+                    <a href="{{ url_for('index', page=data.prev_num) }}?per_page={{ session.get('per_page', 20) }}"
+                       class="px-4 py-2 text-sm text-blue-500">Prev</a>
                 {% endif %}
-            {% endfor %}
-            {% if data.has_next %}
-                <a href="{{ url_for('index', page=data.next_num) }}?per_page={{ session.get('per_page', 20) }}"
-                   class="px-4 py-2 text-sm text-blue-500">Next</a>
-            {% endif %}
-        </div>
-
+                {% for p in data.iter_pages() %}
+                    {% if p %}
+                        <a href="{{ url_for('index', page=p, per_page=session.get('per_page', 20)) }}"
+                           class="px-4 py-2 text-sm {{ 'font-bold' if p == data.page else 'text-blue-500' }}">{{ p }}</a>
+                    {% else %}
+                        <span class="px-4 py-2 text-sm text-gray-500">...</span>
+                    {% endif %}
+                {% endfor %}
+                {% if data.has_next %}
+                    <a href="{{ url_for('index', page=data.next_num) }}?per_page={{ session.get('per_page', 20) }}"
+                       class="px-4 py-2 text-sm text-blue-500">Next</a>
+                {% endif %}
+            </div>
+        {% endif %}
     </div>
 </div>
 
 <!-- JavaScript to handle row editing -->
 <script>
     const staticUrl = "{{ url_for('static', filename='') }}";
-
 </script>
 <script src="{{ url_for('static', filename='js/table_main.js') }}">
     const staticUrl = "{{ url_for('static', filename='') }}";

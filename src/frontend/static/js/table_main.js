@@ -19,11 +19,8 @@ function toggleQuestionEditor(item_id) {
             .then(response => response.json())
             .then(data => {
                 showToast(data.message, false); // Handle success or error message
-                console.log(data.message); // Handle success or error message
-                //     TODO : Add a toast message here
             })
             .catch(error => {
-                console.error('Error:', error);
                 showToast('Error updating question : ' + error, true); // Handle success or error message
             });
 
@@ -83,7 +80,6 @@ function toggleAnswerEditor(item_id) {
     if (contentDiv.getAttribute('contenteditable') === 'true') {
         // Switch to "Save" mode
         let data = editorInstance.getData("");
-        console.log("Edited html -- ", data);
         fetch('/update_answer', {
             method: 'POST', headers: {
                 'Content-Type': 'application/json',
@@ -114,8 +110,6 @@ function toggleAnswerEditor(item_id) {
         contentDiv.classList.add('not-editing');
     } else {
         // Switch to "Edit" mode
-        console.log('Switching to edit mode');
-        console.log("Editing  -- content-" + item_id);
         CKEDITOR.inline('content-' + item_id, {
             // Enable spellcheck
             scayt_autoStartup: true, // Automatically start Spell Check As You Type
@@ -197,7 +191,7 @@ function saveNewRow() {
 
 // Function to handle Delete QA Pair
 function deleteQAPair(item_id) {
-    table_field = document.getElementById('qa-table');
+    let table_field = document.getElementById('qa-table');
     // Prevent deletion of the first row if there are only two rows
     if (item_id === 1 && table_field.rows.length <= 2) {
         showToast('Cannot delete the first row since there are only 2 rows', true); // Handle success or error message
@@ -224,6 +218,7 @@ function deleteQAPair(item_id) {
     }
 }
 
+// Function to handle Upload File Popup
 function handleUploadFilePopup(event) {
 
     if (document.getElementById('drop-zone').classList.contains("hidden")) {
@@ -296,6 +291,7 @@ function processUploadedFile(event) {
     }
 }
 
+// Function to reset the upload file popup
 function resetUploadFilePopup() {
     document.getElementById('drop-zone').classList.remove("hidden")
     document.getElementById('file-name').classList.add("hidden")
@@ -306,6 +302,22 @@ function resetUploadFilePopup() {
     document.getElementById('dropzone-file').value = "";
     document.getElementById('file-error').classList.add("hidden");
 
+}
+
+// Find Duplicates
+function findDuplicates() {
+    // Send a request to a new server-side route that will return only the duplicate rows
+    fetch('/duplicate_checker', {
+        method: 'GET',
+    })
+        .then(response => response.text())  // Change this line to handle HTML responses
+        .then(data => {
+            // The server should return the HTML for the new table, which can replace the old table
+            document.body.innerHTML = data;  // Replace the entire body of the document
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
 }
 
 window.onload = function () {
@@ -326,6 +338,7 @@ window.onload = function () {
 
 // Event listener for 'Save' button in the popup
     document.getElementById('save-btn').addEventListener('click', saveNewRow);
+    document.getElementById('duplicate-check-link').addEventListener('click', findDuplicates);
 
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') {

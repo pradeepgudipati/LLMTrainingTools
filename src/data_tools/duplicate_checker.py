@@ -83,14 +83,21 @@ def find_duplicate_answers():
 # Execute the above functions now.
 def check_duplicates(is_question):
     # Get all items from the database
-    items = get_all_items(LLMDataModel)
+    db_items = get_all_items(LLMDataModel)
     # Preprocess the text
-    items = preprocess_text_items(items)
+    items_text = preprocess_text_items(db_items, is_question)
     # Vectorize the questions
-    items_vectors = vectorize_items(items)
-    # Find similar questions to the first question
-    similar_items_indices = find_similar_items_cosine(items_vectors, 0)
-    # Print the number and text of duplicate questions
-    for i, index in enumerate(similar_items_indices):
-        print(f"Duplicate {i + 1}: {items[index[0]]}")
-    return similar_items_indices
+    items_vectors = vectorize_items(items_text)
+
+    duplicate_pairs = []
+
+    # Compare each item to every other item
+    for i in range(len(db_items)):
+        for j in range(i + 1, len(db_items)):
+            # Calculate similarity between item i and item j
+            similarity = cosine_similarity(items_vectors[i].reshape(1, -1), items_vectors[j].reshape(1, -1))
+            # If similarity is above a certain threshold, consider the items as duplicates
+            if similarity[0][0] > 0.9:  # You can adjust this threshold as needed
+                duplicate_pairs.append((db_items[i], db_items[j]))
+
+    return duplicate_pairs
