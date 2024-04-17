@@ -1,38 +1,37 @@
 import datetime
+import string
 
+import nltk
 import pandas as pd
 from annoy import AnnoyIndex
 from data_tools.database_utils import get_all_items
 from models.llm_training_data_model import LLMDataModel
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from tqdm import tqdm
 
+# Download the stopwords from NLTK
+nltk.download('stopwords')
+nltk.download('wordnet')
 
-# Function to preprocess the text - convert all questions or answers to lower
+stop_words = set(stopwords.words('english'))
+lemmatizer = WordNetLemmatizer()
+
+
 def preprocess_text_items(items, is_question=True):
-    questions = []
-    answers = []
-    count = 0
-    if is_question:
-        for item in items:
-            # Append the question to the questions list after removing any leading or trailing whitespaces and
-            #  removing - Category: * ; Question: from the question = * means any character string
-            ques = item.question
-            if ":" in ques:
-                ques = ques.rsplit(":", 1)[1].strip()
-                questions.append(ques.lower())
-            else:
-                questions.append(ques.lower())
-            count += 1
-        return questions
-    else:
-        for item in items:
-            # Append the answer to the answers list after removing any leading or trailing whitespaces
-            answers.append(item.answer.lower())
-            count += 1
-        print("Preprocessed Total Answers -- ", count)
-        return answers
+    processed_items = []
+    for item in items:
+        text = item.question if is_question else item.answer
+        # Remove punctuation
+        text = text.translate(str.maketrans('', '', string.punctuation))
+        # Tokenize the text
+        words = nltk.word_tokenize(text)
+        # Remove stopwords and lemmatize the words
+        words = [lemmatizer.lemmatize(word) for word in words if word not in stop_words]
+        processed_items.append(' '.join(words))
+    return processed_items
 
 
 # Vectorize the questions using TfidfVectorizer
@@ -46,70 +45,9 @@ def vectorize_items(items):
     return items_vectors
 
 
-# Function to find similar items using dot product
-def find_similar_items(items_vectors, item_index, top_n=5):
-    # Calculate the dot product of the question with all other questions
-    items_dot_products = items_vectors.dot(items_vectors[item_index].T)
-    # Convert the sparse matrix to a dense one
-    items_dot_products_dense = items_dot_products.toarray()
-    # Get the indices of the questions with the highest dot products
-    similar_items_indices = items_dot_products_dense.argsort(axis=0)[-top_n:][::-1]
-    print(similar_items_indices)
-    return similar_items_indices
-
-
-# Function to find similar items using cosine similarity
-def find_similar_items_cosine(items_vectors, item_index, top_n=5):
-    # Calculate the cosine similarity of the question with all other questions
-    items_similarities = cosine_similarity(items_vectors, items_vectors[item_index].reshape(1, -1))
-    # Get the indices of the questions with the highest similarities
-    similar_item_indices = items_similarities.argsort(axis=0)[-top_n:][::-1]
-    print("Similar items are -- ", similar_item_indices)
-    return similar_item_indices
-
-
-# Function to check for duplicates in answers in the database
-def find_duplicate_answers():
-    # Get all items from the database
-    items = get_all_items()
-    # Preprocess the text
-    answers = preprocess_text_items(items)
-    # Vectorize the answers
-    answer_vectors = vectorize_items(answers)
-    # Find similar answers to the first answer
-    similar_answer_indices = find_similar_items_cosine(answer_vectors, 0)
-    print("Similar answers are -- ", similar_answer_indices)
-    # Print the number and text of duplicate answers
-    for i, index in enumerate(similar_answer_indices):
-        print(f"Duplicate {i + 1}: {answers[index[0]]}")
-
-
-# Execute the above functions now.
-def check_duplicates(is_question):
-    # Get all items from the database
-    db_items = get_all_items(LLMDataModel)
-    # Preprocess the text
-    items_text = preprocess_text_items(db_items, is_question)
-    # Vectorize the questions
-    items_vectors = vectorize_items(items_text)
-
-    duplicate_pairs = []
-
-    # Compare each item to every other item
-    for i in range(len(db_items)):
-        for j in range(i + 1, len(db_items)):
-            # Calculate similarity between item i and item j
-            similarity = cosine_similarity(items_vectors[i].reshape(1, -1), items_vectors[j].reshape(1, -1))
-            print(f"Similarity between {db_items[i]} and {db_items[j]}: {similarity[0][0]}")
-            # If similarity is above a certain threshold, consider the items as duplicates
-            if similarity[0][0] > 0.9:  # You can adjust this threshold as needed
-                print(f"Duplicate Pair: {db_items[i]} and {db_items[j]}")
-                duplicate_pairs.append((db_items[i], db_items[j]))
-    print("Duplicate Pairs are --", len(duplicate_pairs))
-    return duplicate_pairs
-
-
+# Check for duplicates in questions or answers and store them in a csv file. The function takes a boolean parameter
 def duplicate_checker_vectors(is_question):
+    # Get all items from the database
     db_items = get_all_items(LLMDataModel)
     # Preprocess the text
     items_text = preprocess_text_items(db_items, is_question)
