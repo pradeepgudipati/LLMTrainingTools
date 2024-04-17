@@ -5,7 +5,10 @@ LLMTrainingTools provides a suite of utilities designed to facilitate the creati
 # Key Features
 ### - **Flask UI for Data Editing**: A web application for easy editing of training data.
 ### - **CSV to JSONL Conversion**: Convert CSV files to JSONL format for LLM training.
-### - **JSONL and SQLite Conversion**: Convert data between JSONL files and SQLite databases.
+### - **Export and Import Data**: Export data from the database to JSONL and import JSONL data into the database.
+### - **Backup Data**: Backup the SQLite database to JSONL format for safekeeping or as SQL dump.
+
+
 
 
 ## Getting Started
@@ -92,7 +95,7 @@ python db_to_jsonl.py
 1. First verify the jsonl and db paths in the [jsonl_to_sqllite.py](jsonl_data_to_db%2Fjsonl_to_sqllite.py)
 
 ```python
-jsonl_file_path = "jsonl_data_to_db/data/qa_data.jsonl"
+jsonl_file_path = "src/data_tools/import_utils/data/qa_data.jsonl"
 sqlite_db_path = "data/qa_data.db"
 ```
 2. Run the following command in the terminal to execute the code

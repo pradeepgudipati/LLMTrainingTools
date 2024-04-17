@@ -36,6 +36,7 @@ def validate_jsonl_file(file_path):
     return True
 
 
+# Save file to folder
 def save_file(file, folder):
     filename = secure_filename(file.filename)
     if not os.path.exists(folder):

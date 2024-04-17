@@ -1,13 +1,66 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Upload CSV/JSONL</title>
-    <style>
-        /* Add your CSS here */
-    </style>
-</head>
-<body>
+<!-- Popup Form for Upload file -->
+<div id="upload-file-popup" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white popup-custom-width">
+        <div class="mt-3 text-center">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Upload File</h3>
+            <table id="message-table" class="hidden w-full border-collapse">
+                <thead>
+                <tr>
+                    <th class="w-40 min-w-[10rem] max-w-[10rem] leading-normal text-emerald-500">
+                        Status
+                    </th>
+                    <th class="w-40 min-w-[10rem] max-w-[10rem] leading-normal text-emerald-500">
+                        Message
+                    </th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td class="text-sm text-gray-500 dark:text-gray-400">File Name</td>
+                    <td id="file-name" class="text-sm text-gray-500 dark:text-gray-400">
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-sm text-gray-500 dark:text-gray-400">Message</td>
+                    <td id="file-size-msg" class="text-sm text-gray-500 dark:text-gray-400">
+                        <span id="file-error" class="hidden text-sm text-red-900 dark:text-white"></span>
+                        <span id="file-success" class="hidden text-sm text-green-900 dark:text-white"></span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
 
-</body>
-</html>
+            <div id="drop-zone" class="mt-xl-3 px-7 py-3">
+
+                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                    <svg class="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true"
+                         xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"></path>
+                    </svg>
+                    <p class="mb-2 text-sm text-gray-500 dark:text-gray-400"><span
+                            class="font-semibold">Click to upload</span>
+                        or drag and drop</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">CSV / JSONL</p>
+                </div>
+                <label for="dropzone-file"
+                       class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
+                </label>
+                <input id="dropzone-file" type="file" class="hidden" accept=".csv, .jsonl"/>
+            </div>
+            <div class="items-center px-4 py-3">
+                <button id="close-btn"
+                        class="px-4 py-1 text-white bg-gray-500 rounded hover:bg-gray-600 mr-2">Close
+                </button>
+                <button id="reset-btn" class="hidden px-4 py-1 text-white bg-red-500 rounded hover:bg-red-600">
+                    Reset
+                </button>
+                <button id="process-btn" class="hidden px-4 py-1 text-white bg-blue-500 rounded hover:bg-blue-600">
+                    Process
+                </button>
+
+            </div>
+        </div>
+    </div>
+</div>

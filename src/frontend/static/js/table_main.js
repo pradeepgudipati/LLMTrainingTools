@@ -3,9 +3,10 @@ let upload_file_name = "";
 
 // Toggle Edit or Save Question buttons
 function toggleQuestionEditor(item_id) {
-    let questionDiv = document.getElementById('question-' + item_id);
-    let isEditing = questionDiv.getAttribute('contenteditable') === 'true';
-    let editQuestionButton = document.getElementById('edit-q-btn-' + item_id);
+    const questionDiv = document.getElementById('question-' + item_id);
+    const isEditing = questionDiv.getAttribute('contenteditable') === 'true';
+    const question_btn_text_field = document.getElementById('q-edit-button-text-' + item_id);
+    const question_btn_icon_field = document.getElementById('q-edit-button-icon-' + item_id);
     if (isEditing) {
         // Save the edited question
         let newQuestion = questionDiv.innerText;
@@ -19,29 +20,24 @@ function toggleQuestionEditor(item_id) {
             .then(response => response.json())
             .then(data => {
                 showToast(data.message, false); // Handle success or error message
-                console.log(data.message); // Handle success or error message
-                //     TODO : Add a toast message here
             })
             .catch(error => {
-                console.error('Error:', error);
                 showToast('Error updating question : ' + error, true); // Handle success or error message
             });
 
         questionDiv.setAttribute('contenteditable', 'false');
         questionDiv.classList.remove('editing');
-        editQuestionButton.querySelector('span').textContent = 'Edit Q';
-        editQuestionButton.querySelector('img').src = staticUrl + "res/questionEditIcon.svg";
+        question_btn_text_field.innerText = 'Edit Q';
+        question_btn_icon_field.src = staticUrl + "res/questionEditIcon.svg";
         questionDiv.classList.add('not-editing');
     } else {
         // Enable editing
         questionDiv.setAttribute('contenteditable', 'true');
         questionDiv.classList.add('editing');
         questionDiv.focus();
-        {
-            document.getElementById('edit-q-btn-' + item_id).innerText = 'Save';
-        }
-        editQuestionButton.querySelector('span').textContent = 'Save';
-        editQuestionButton.querySelector('img').src = staticUrl + "res/saveIcon.svg";
+
+        question_btn_text_field.innerText = 'Save';
+        question_btn_icon_field.src = staticUrl + "res/saveIcon.svg";
         questionDiv.focus();
         questionDiv.classList.add('editing');
     }
@@ -77,13 +73,12 @@ function showToast(message, isError = false) {
 // Toggle Answer edit or save buttons
 function toggleAnswerEditor(item_id) {
     console.log('Toggling editor for item ID ' + item_id);
-    let contentDiv = document.getElementById('content-' + item_id);
-    let editorInstance = CKEDITOR.instances['content-' + item_id]; // Corrected instance ID
-    let editAnswerButton = document.getElementById('edit-a-btn-' + item_id);
+    const contentDiv = document.getElementById('content-' + item_id);
+    const editorInstance = CKEDITOR.instances['content-' + item_id]; // Corrected instance ID
+    const editAnswerButton = document.getElementById('edit-a-btn-' + item_id);
     if (contentDiv.getAttribute('contenteditable') === 'true') {
         // Switch to "Save" mode
         let data = editorInstance.getData("");
-        console.log("Edited html -- ", data);
         fetch('/update_answer', {
             method: 'POST', headers: {
                 'Content-Type': 'application/json',
@@ -92,14 +87,15 @@ function toggleAnswerEditor(item_id) {
             }),
         })
             .then(response => {
+                console.log('Response:', response);
                 if (response.ok) {
                     // Data saved successfully, you can show a success message if needed
                     // console.log('Content saved successfully');
-                    showToast('Content saved successfully', false); // Handle success or error message
+                    showToast('Answer for row :: ' + item_id + ' updated successfully', false); // Handle success or error message
                 } else {
                     // Handle errors
                     // console.error('Error saving content');
-                    showToast('Error saving content', true); // Handle success or error message
+                    showToast('Error saving content for row :: ' + item_id, true); // Handle success or error message
                 }
             })
             .catch(error => {
@@ -114,8 +110,6 @@ function toggleAnswerEditor(item_id) {
         contentDiv.classList.add('not-editing');
     } else {
         // Switch to "Edit" mode
-        console.log('Switching to edit mode');
-        console.log("Editing  -- content-" + item_id);
         CKEDITOR.inline('content-' + item_id, {
             // Enable spellcheck
             scayt_autoStartup: true, // Automatically start Spell Check As You Type
@@ -138,9 +132,11 @@ function toggleAnswerEditor(item_id) {
 function showUploadFilePopup(e) {
     console.log('---- showUploadFilePopup ----', e, e.target.id);
     document.getElementById('upload-file-popup').classList.remove('hidden');
+    document.getElementById('dropzone-file').value = "";
+    document.getElementById('file-success').classList.add('hidden');
     document.getElementById('file-error').classList.add('hidden');
+    document.getElementById('message-table').classList.add("hidden");
     document.getElementById('drop-zone').classList.remove("hidden")
-    document.getElementById('file-name').classList.add("hidden")
 
 }
 
@@ -148,6 +144,8 @@ function showUploadFilePopup(e) {
 function hideUploadFilePopup(e) {
     console.log('---- showUploadFilePopup ----', e, e.target.id);
     document.getElementById('upload-file-popup').classList.add('hidden');
+//     refresh the page
+    window.location.reload();
 }
 
 // Function to show the popup
@@ -177,7 +175,7 @@ function saveNewRow() {
         method: 'POST', headers: {
             'Content-Type': 'application/json',
         }, body: JSON.stringify({
-            user: question, assistant: answer
+            question: question, answer: answer
         }),
     })
         .then(response => response.json())
@@ -197,11 +195,11 @@ function saveNewRow() {
 
 // Function to handle Delete QA Pair
 function deleteQAPair(item_id) {
-    table_field = document.getElementById('qa-table');
+    let table_field = document.getElementById('qa-table');
     // Prevent deletion of the first row if there are only two rows
     if (item_id === 1 && table_field.rows.length <= 2) {
         showToast('Cannot delete the first row since there are only 2 rows', true); // Handle success or error message
-        return;
+
     } else {
         console.log('Deleting item ID ' + item_id);
         if (confirm("Are you sure you want to delete this item?")) {
@@ -224,19 +222,25 @@ function deleteQAPair(item_id) {
     }
 }
 
+// Function to handle Upload File Popup
 function handleUploadFilePopup(event) {
 
     if (document.getElementById('drop-zone').classList.contains("hidden")) {
-        alert(" Processing the file now ")
-    } else {
+        showToast(" Processing the file now ")
+    } else if (event.target.files && event.target.files.length > 0) {
+
+        // Comes here when the file is selected
         upload_file_name = event.target.files[0].name;
-        console.log('Selected file:', upload_file_name);
+        // Hide the dropzone and show the file name
         document.getElementById('drop-zone').classList.add("hidden")
-        document.getElementById('file-name').classList.remove("hidden")
-        document.getElementById('upload-btn').classList.add("hidden")
+        // Show the messages table
+        document.getElementById('message-table').classList.remove("hidden");
+        document.getElementById('file-name').textContent = upload_file_name;
+        document.getElementById('file-success').textContent = "Click Process to import the file";
+        document.getElementById('file-success').classList.remove("hidden");
+        // Show the file name and hide the upload button
         document.getElementById('process-btn').classList.remove("hidden")
         document.getElementById('reset-btn').classList.remove("hidden")
-        document.getElementById('file-name').textContent = upload_file_name;
 
     }
 }
@@ -244,7 +248,7 @@ function handleUploadFilePopup(event) {
 //  This function checks if the file is a CSV or JSONL file and based on that will call the appropriate function
 function processUploadedFile(event) {
     let formData = new FormData();
-    let fileInput = document.getElementById('dropzone-file');
+    const fileInput = document.getElementById('dropzone-file');
     let file = fileInput.files[0];
     formData.append('file', file, upload_file_name); // append the file to the FormData object
 
@@ -260,23 +264,33 @@ function processUploadedFile(event) {
                 // Create a new FormData object to send the JSONL file to the import_jsonl endpoint
                 let jsonlFormData = new FormData();
                 jsonlFormData.append('file', data, upload_file_name.replace('.csv', '.jsonl'));
+                showToast("File converted to JSONL")
                 return fetch('/import_jsonl_to_sqlite', {
                     method: 'POST',
                     body: jsonlFormData
                 });
+
             })
             .then(response => response.text())
             .then(data => {
                 console.log('CSV to JSONL conversion and import response:', data);
                 document.getElementById('file-error').textContent = "\n" + data;
                 document.getElementById('file-error').classList.remove("hidden");
+                if (data.toLowerCase().includes("success")) {
+                    document.getElementById('process-btn').classList.add("hidden");
+                    document.getElementById('reset-btn').classList.add("hidden");
+                }
+                showToast("File imported successfully")
             })
             .catch((error) => {
                 console.error('Error:', error);
                 document.getElementById('file-error').textContent = "\n" + error;
                 document.getElementById('file-error').classList.remove("hidden");
+                showToast("Error converting file")
             });
+
     } else if (upload_file_name.endsWith(".jsonl")) {
+        document.getElementById('message-table').classList.remove("hidden");
         // If the file is a JSONL, directly import it to the database
         fetch('/import_jsonl_to_sqlite', {
             method: 'POST',
@@ -284,27 +298,109 @@ function processUploadedFile(event) {
         })
             .then(response => response.text())
             .then(data => {
-                document.getElementById('file-error').textContent = "\n" + data;
-                document.getElementById('file-error').classList.remove("hidden");
+                console.log('JSONL import response:', data);
+
+                document.getElementById('file-success').textContent = "\n" + data;
+                document.getElementById('file-success').classList.remove("hidden");
+                document.getElementById('file-error').classList.add("hidden");
+                document.getElementById('file-error').textContent = "";
+
+                if (data.toLowerCase().includes("success")) {
+                    document.getElementById('process-btn').classList.add("hidden");
+                    document.getElementById('reset-btn').classList.add("hidden");
+                }
+                showToast("JSONL File imported successfully")
             })
             .catch((error) => {
                 document.getElementById('file-error').textContent = "\n" + error;
                 document.getElementById('file-error').classList.remove("hidden");
+                showToast("Error importing JSONL file")
             });
     } else {
-        alert("Please select a CSV or JSONL file")
+        showToast("Please select a CSV or JSONL file");
     }
 }
 
+// Function to reset the upload file popup
 function resetUploadFilePopup() {
     document.getElementById('drop-zone').classList.remove("hidden")
-    document.getElementById('file-name').classList.add("hidden")
-    document.getElementById('upload-btn').classList.remove("hidden")
     document.getElementById('process-btn').classList.add("hidden")
     document.getElementById('reset-btn').classList.add("hidden")
     document.getElementById('file-name').textContent = "";
     document.getElementById('dropzone-file').value = "";
+    document.getElementById('message-table').classList.add("hidden");
+}
 
+// Find Duplicates
+function findDuplicates() {
+    // Send a request to a new server-side route that will return only the duplicate rows
+    fetch('/duplicate_checker', {
+        method: 'GET',
+    })
+        .then(response => response.text())  // Change this line to handle HTML responses
+        .then(data => {
+            // The server should return the HTML for the new table, which can replace the old table
+            document.body.innerHTML = data;  // Replace the entire body of the document
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+}
+
+function showCleanTextPopup() {
+    //Shows the popup
+    document.getElementById('bulk-remove-text-popup').classList.remove('hidden');
+    //Resets all the fields to initial state
+    document.getElementById('bulk-remove-text-status').classList.add('hidden');
+    document.getElementById('bulk-remove-text').value = '';
+    document.getElementById('category').value = 'All Questions';
+    document.getElementById('bulk-remove-text').textContent = '';
+    document.getElementById('bulk-remove-text').focus();
+}
+
+function closeCleanTextPopup() {
+    //hides the popup
+    document.getElementById('bulk-remove-text-popup').classList.add('hidden');
+}
+
+function processCleanText() {
+    // Get the text from the textarea
+    let text = document.getElementById('bulk-remove-text').value;
+    // Get the selection - Question or Answers category
+    let category = document.getElementById('category').value;
+    let isQuestion = true
+    if (category.includes('answer')) {
+        isQuestion = false
+    }
+    console.log('Category:', category);
+    console.log('Text to remove:', text);
+    console.log('isQuestion:', isQuestion);
+    post_body = JSON.stringify({
+        'wrong_string': text,
+        'isQuestion': isQuestion,
+    });
+    console.log("Post Body -- ", post_body);
+    // Now call the clean_items_api API to remove the text
+    fetch('/clean_items', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: post_body,
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Cleaned text:', data);
+            // Update the textarea with the cleaned text
+            document.getElementById('bulk-remove-text-status').textContent = data.message + "\n Cleaned "
+                + data.total_items + ". Found text in " + data.items_with_text + " items.";
+            document.getElementById('bulk-remove-text-status').classList.remove('hidden');
+            //refresh the list
+            window.location.reload();
+        })
+        .catch(error => {
+            console.error('Error cleaning text:', error);
+        });
 }
 
 window.onload = function () {
@@ -314,10 +410,15 @@ window.onload = function () {
 // Event listener for 'Upload File' button
     document.getElementById('import-jsonl-link').addEventListener('click', showUploadFilePopup);
     document.getElementById('import-csv-link').addEventListener('click', showUploadFilePopup);
+    // For the bulk text remover popup
+    document.getElementById('bulk-remove-text-link').addEventListener('click', showCleanTextPopup);
+    document.getElementById('bulk-remove-cancel-btn').addEventListener('click', closeCleanTextPopup);
+    document.getElementById('bulk-remove-run-btn').addEventListener('click', processCleanText);
+
 
 // Event listener for 'Cancel' button in the upload file popup
-    document.getElementById('cancel-upload-btn').addEventListener('click', hideUploadFilePopup);
-    document.getElementById('upload-btn').addEventListener('click', handleUploadFilePopup);
+    document.getElementById('close-btn').addEventListener('click', hideUploadFilePopup);
+    document.getElementById('drop-zone').addEventListener('click', handleUploadFilePopup);
 // Event listener for 'Cancel' button in the popup
     document.getElementById('cancel-btn').addEventListener('click', hidePopup);
     document.getElementById('process-btn').addEventListener('click', processUploadedFile);
@@ -325,11 +426,13 @@ window.onload = function () {
 
 // Event listener for 'Save' button in the popup
     document.getElementById('save-btn').addEventListener('click', saveNewRow);
+    document.getElementById('duplicate-check-link').addEventListener('click', findDuplicates);
 
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') {
             hideUploadFilePopup(event);
             hidePopup(event);
+            closeCleanTextPopup();
         }
     });
 
