@@ -45,4 +45,3 @@ def save_file(file, folder):
     file_path = os.path.join(folder, filename)
     file.save(file_path)
     return file_path
-

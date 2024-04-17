@@ -9,7 +9,7 @@
 
 # llm_training_data_model.py
 
-from src.data_tools.db_init import db
+from data_tools.db_init import db
 
 
 class LLMDataModel(db.Model):
@@ -27,4 +27,3 @@ class LLMDataModel(db.Model):
             'question': self.question,
             'answer': self.answer,
         }
-

@@ -2,12 +2,11 @@ import datetime
 
 import pandas as pd
 from annoy import AnnoyIndex
+from data_tools.database_utils import get_all_items
+from models.llm_training_data_model import LLMDataModel
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from tqdm import tqdm
-
-from src.data_tools.database_utils import get_all_items
-from src.models.llm_training_data_model import LLMDataModel
 
 
 # Function to preprocess the text - convert all questions or answers to lower

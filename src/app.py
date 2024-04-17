@@ -5,15 +5,15 @@ from flask import Flask, render_template, request, jsonify, session, app, redire
 from flask import send_file
 from sqlalchemy import inspect
 
-from src.data_tools.clean_data_in_db import clean_items
-from src.data_tools.database_utils import backup_db
-from src.data_tools.db_init import db
-from src.data_tools.duplicate_checker import duplicate_checker_vectors
-from src.data_tools.import_utils.csv_to_jsonl import convert_single_csv_to_jsonl
-from src.data_tools.import_utils.db_to_jsonl import sqlite_to_jsonl
-from src.data_tools.import_utils.jsonl_to_sqllite import import_jsonl_to_sqlite, test_jsonl_to_sqlite
-from src.models.llm_training_data_model import LLMDataModel
-from src.utils import validate_jsonl_file, validate_csv_file, save_file
+from data_tools.clean_data_in_db import clean_items
+from data_tools.database_utils import backup_db
+from data_tools.db_init import db
+from data_tools.duplicate_checker import duplicate_checker_vectors
+from data_tools.import_utils.csv_to_jsonl import convert_single_csv_to_jsonl
+from data_tools.import_utils.db_to_jsonl import sqlite_to_jsonl
+from data_tools.import_utils.jsonl_to_sqllite import import_jsonl_to_sqlite, test_jsonl_to_sqlite
+from models.llm_training_data_model import LLMDataModel
+from utils import validate_jsonl_file, validate_csv_file, save_file
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "data/qa_data.db")
@@ -353,7 +353,7 @@ def restore_database():
         try:
             backup_file_path = save_file(file, app.config['UPLOAD_FOLDER'])
             # Now replace the current DB with the backup
-            restored_db_path = backup_db(DB_PATH, backup_file_path)
+            restored_db_path = backup_db(DB_PATH)
             return send_file(restored_db_path, as_attachment=True)
         except Exception as e:
             return jsonify(status="error", message=f"Error restoring database: {e}"), 500

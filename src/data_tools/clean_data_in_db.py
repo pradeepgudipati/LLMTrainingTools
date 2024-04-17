@@ -1,6 +1,6 @@
 # This file contains the code to remove or clean the Questions and Answers in the SQlite Database
 # This code uses the LLMDataModel class from the llm_training_data_model.py file
-from src.data_tools.database_utils import get_all_items
+from data_tools.database_utils import get_all_items
 
 
 # Function to clean the questions and save the cleaned questions back to the database

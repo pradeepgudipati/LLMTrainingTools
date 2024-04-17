@@ -3,7 +3,7 @@ import datetime
 import os
 import sqlite3
 
-from src.models.llm_training_data_model import LLMDataModel
+from models.llm_training_data_model import LLMDataModel
 
 
 # Function to get all items from the database

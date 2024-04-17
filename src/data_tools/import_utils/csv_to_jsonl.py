@@ -7,17 +7,17 @@ def process_csv_file(csv_file, all_data):
     with open(csv_file, "r", encoding="utf-8") as csv_input:
         csv_reader = csv.DictReader(csv_input)
         for row in csv_reader:
-            Prompt = row.get("question", "").strip()
-            Completion = row.get("answer", "").strip()
+            prompt = row.get("question", "").strip()
+            completion = row.get("answer", "").strip()
 
-            if not Prompt or not Completion:
+            if not prompt or not completion:
                 print(f"Skipped row due to empty content: {row}")
                 continue
 
             each_line_json_obj = {
                 "messages": [
-                    {"role": "user", "content": Prompt},
-                    {"role": "assistant", "content": Completion},
+                    {"role": "user", "content": prompt},
+                    {"role": "assistant", "content": completion},
                 ]
             }
             all_data.append(each_line_json_obj)
@@ -45,7 +45,6 @@ def write_to_jsonl(data, output_file):
     with open(output_file, "w", encoding="utf-8") as jsonl_output:
         for each_data in data:
             jsonl_output.write(json.dumps(each_data) + "\n")
-
 
 # # Paths
 # csv_files_path = "./docs"

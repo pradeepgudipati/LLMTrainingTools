@@ -49,6 +49,7 @@
         <!-- Search Form -->
         <div class="flex justify-end mt-4">
             <form action="{{ url_for('index') }}" method="get" class="flex items-center">
+                <label for="search-qa-query" class="mr-2">Search Questions:</label>
                 <input type="text" id="search-qa-query" name="query-qa" placeholder="Search Questions ..."
                        class="px-2 py-1 border rounded" value="{{ query_qa }}">
                 <button type="submit" class="ml-2 px-4 py-1 text-white bg-blue-500 rounded hover:bg-blue-600">Search
@@ -58,6 +59,7 @@
         </div>
         <div class="flex justify-end mt-4">
             <form action="{{ url_for('index') }}" method="get" class="flex items-center">
+                <label for="search-ans-query" class="mr-2">Search Answers:</label>
                 <input type="text" id="search-ans-query" name="query-ans" placeholder="Search Answers ..."
                        class="px-2 py-1 border rounded" value="{{ query_ans }}">
                 <button type="submit" class="ml-2 px-4 py-1 text-white bg-blue-500 rounded hover:bg-blue-600">Search

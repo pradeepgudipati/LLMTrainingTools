@@ -3,11 +3,10 @@ let upload_file_name = "";
 
 // Toggle Edit or Save Question buttons
 function toggleQuestionEditor(item_id) {
-    let questionDiv = document.getElementById('question-' + item_id);
-    let isEditing = questionDiv.getAttribute('contenteditable') === 'true';
-    let editQuestionButton = document.getElementById('edit-q-btn-' + item_id);
-    question_btn_text_field = document.getElementById('q-edit-button-text-' + item_id);
-    question_btn_icon_field = document.getElementById('q-edit-button-icon-' + item_id);
+    const questionDiv = document.getElementById('question-' + item_id);
+    const isEditing = questionDiv.getAttribute('contenteditable') === 'true';
+    const question_btn_text_field = document.getElementById('q-edit-button-text-' + item_id);
+    const question_btn_icon_field = document.getElementById('q-edit-button-icon-' + item_id);
     if (isEditing) {
         // Save the edited question
         let newQuestion = questionDiv.innerText;
@@ -74,9 +73,9 @@ function showToast(message, isError = false) {
 // Toggle Answer edit or save buttons
 function toggleAnswerEditor(item_id) {
     console.log('Toggling editor for item ID ' + item_id);
-    let contentDiv = document.getElementById('content-' + item_id);
-    let editorInstance = CKEDITOR.instances['content-' + item_id]; // Corrected instance ID
-    let editAnswerButton = document.getElementById('edit-a-btn-' + item_id);
+    const contentDiv = document.getElementById('content-' + item_id);
+    const editorInstance = CKEDITOR.instances['content-' + item_id]; // Corrected instance ID
+    const editAnswerButton = document.getElementById('edit-a-btn-' + item_id);
     if (contentDiv.getAttribute('contenteditable') === 'true') {
         // Switch to "Save" mode
         let data = editorInstance.getData("");
@@ -200,7 +199,7 @@ function deleteQAPair(item_id) {
     // Prevent deletion of the first row if there are only two rows
     if (item_id === 1 && table_field.rows.length <= 2) {
         showToast('Cannot delete the first row since there are only 2 rows', true); // Handle success or error message
-        return;
+
     } else {
         console.log('Deleting item ID ' + item_id);
         if (confirm("Are you sure you want to delete this item?")) {
@@ -249,7 +248,7 @@ function handleUploadFilePopup(event) {
 //  This function checks if the file is a CSV or JSONL file and based on that will call the appropriate function
 function processUploadedFile(event) {
     let formData = new FormData();
-    let fileInput = document.getElementById('dropzone-file');
+    const fileInput = document.getElementById('dropzone-file');
     let file = fileInput.files[0];
     formData.append('file', file, upload_file_name); // append the file to the FormData object
 
@@ -265,11 +264,12 @@ function processUploadedFile(event) {
                 // Create a new FormData object to send the JSONL file to the import_jsonl endpoint
                 let jsonlFormData = new FormData();
                 jsonlFormData.append('file', data, upload_file_name.replace('.csv', '.jsonl'));
+                showToast("File converted to JSONL")
                 return fetch('/import_jsonl_to_sqlite', {
                     method: 'POST',
                     body: jsonlFormData
                 });
-                showToast("File converted to JSONL")
+
             })
             .then(response => response.text())
             .then(data => {
@@ -391,9 +391,9 @@ function processCleanText() {
         .then(response => response.json())
         .then(data => {
             console.log('Cleaned text:', data);
-            const message = data.message + "\n Cleaned " + data.total_items + ". Found text in " + data.items_with_text + " items.";
             // Update the textarea with the cleaned text
-            document.getElementById('bulk-remove-text-status').textContent = message;
+            document.getElementById('bulk-remove-text-status').textContent = data.message + "\n Cleaned "
+                + data.total_items + ". Found text in " + data.items_with_text + " items.";
             document.getElementById('bulk-remove-text-status').classList.remove('hidden');
             //refresh the list
             window.location.reload();
