@@ -7,6 +7,7 @@
 {% include 'add_new_row.html' %}
 <!-- Upload File Popup -->
 {% include 'upload_file.html' %}
+{% include 'bulk_remove_text_popup.html' %}
 <!-- This is the file upload form that will be displayed when the "Import JSONL to DB" button is clicked -->
 <div id="import-jsonl-form" style="display: none;">
     <form action="{{ url_for('jsonl_to_sqlite') }}" method="post" enctype="multipart/form-data">
@@ -91,16 +92,16 @@
             <thead>
             <tr>
                 <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider col-id">
-                    ID
+                    IDs
                 </th>
                 <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider col-question">
-                    Question
+                    Questions
                 </th>
                 <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider col-answer">
-                    Answer
+                    Answers
                 </th>
                 <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider col-action">
-                    Action
+                    Actions
                 </th>
             </tr>
             </thead>
@@ -128,9 +129,10 @@
                         <div class="flex justify-around items-center h-auto">
                             <button id="edit-q-btn-{{ item.id }}" onclick="toggleQuestionEditor({{ item.id }})"
                                     class="text-green-500 hover:text-green-800">
-                                <img src="{{ url_for('static', filename='res/questionEditIcon.svg') }}"
+                                <img id="q-edit-button-icon-{{ item.id }}"
+                                     src="{{ url_for('static', filename='res/questionEditIcon.svg') }}"
                                      alt="Question Edit icon"/>
-                                <span>Edit Q</span>
+                                <span id="q-edit-button-text-{{ item.id }}">Edit Q</span>
                             </button>
                             <div>&nbsp &nbsp</div>
 

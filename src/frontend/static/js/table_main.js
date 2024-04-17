@@ -6,6 +6,8 @@ function toggleQuestionEditor(item_id) {
     let questionDiv = document.getElementById('question-' + item_id);
     let isEditing = questionDiv.getAttribute('contenteditable') === 'true';
     let editQuestionButton = document.getElementById('edit-q-btn-' + item_id);
+    question_btn_text_field = document.getElementById('q-edit-button-text-' + item_id);
+    question_btn_icon_field = document.getElementById('q-edit-button-icon-' + item_id);
     if (isEditing) {
         // Save the edited question
         let newQuestion = questionDiv.innerText;
@@ -26,19 +28,17 @@ function toggleQuestionEditor(item_id) {
 
         questionDiv.setAttribute('contenteditable', 'false');
         questionDiv.classList.remove('editing');
-        editQuestionButton.querySelector('span').textContent = 'Edit Q';
-        editQuestionButton.querySelector('img').src = staticUrl + "res/questionEditIcon.svg";
+        question_btn_text_field.innerText = 'Edit Q';
+        question_btn_icon_field.src = staticUrl + "res/questionEditIcon.svg";
         questionDiv.classList.add('not-editing');
     } else {
         // Enable editing
         questionDiv.setAttribute('contenteditable', 'true');
         questionDiv.classList.add('editing');
         questionDiv.focus();
-        {
-            document.getElementById('edit-q-btn-' + item_id).innerText = 'Save';
-        }
-        editQuestionButton.querySelector('span').textContent = 'Save';
-        editQuestionButton.querySelector('img').src = staticUrl + "res/saveIcon.svg";
+
+        question_btn_text_field.innerText = 'Save';
+        question_btn_icon_field.src = staticUrl + "res/saveIcon.svg";
         questionDiv.focus();
         questionDiv.classList.add('editing');
     }
@@ -88,14 +88,15 @@ function toggleAnswerEditor(item_id) {
             }),
         })
             .then(response => {
+                console.log('Response:', response);
                 if (response.ok) {
                     // Data saved successfully, you can show a success message if needed
                     // console.log('Content saved successfully');
-                    showToast('Content saved successfully', false); // Handle success or error message
+                    showToast('Answer for row :: ' + item_id + ' updated successfully', false); // Handle success or error message
                 } else {
                     // Handle errors
                     // console.error('Error saving content');
-                    showToast('Error saving content', true); // Handle success or error message
+                    showToast('Error saving content for row :: ' + item_id, true); // Handle success or error message
                 }
             })
             .catch(error => {
@@ -268,6 +269,7 @@ function processUploadedFile(event) {
                     method: 'POST',
                     body: jsonlFormData
                 });
+                showToast("File converted to JSONL")
             })
             .then(response => response.text())
             .then(data => {
@@ -278,12 +280,15 @@ function processUploadedFile(event) {
                     document.getElementById('process-btn').classList.add("hidden");
                     document.getElementById('reset-btn').classList.add("hidden");
                 }
+                showToast("File imported successfully")
             })
             .catch((error) => {
                 console.error('Error:', error);
                 document.getElementById('file-error').textContent = "\n" + error;
                 document.getElementById('file-error').classList.remove("hidden");
+                showToast("Error converting file")
             });
+
     } else if (upload_file_name.endsWith(".jsonl")) {
         document.getElementById('message-table').classList.remove("hidden");
         // If the file is a JSONL, directly import it to the database
@@ -304,13 +309,15 @@ function processUploadedFile(event) {
                     document.getElementById('process-btn').classList.add("hidden");
                     document.getElementById('reset-btn').classList.add("hidden");
                 }
+                showToast("JSONL File imported successfully")
             })
             .catch((error) => {
                 document.getElementById('file-error').textContent = "\n" + error;
                 document.getElementById('file-error').classList.remove("hidden");
+                showToast("Error importing JSONL file")
             });
     } else {
-        alert("Please select a CSV or JSONL file")
+        showToast("Please select a CSV or JSONL file");
     }
 }
 
@@ -322,7 +329,6 @@ function resetUploadFilePopup() {
     document.getElementById('file-name').textContent = "";
     document.getElementById('dropzone-file').value = "";
     document.getElementById('message-table').classList.add("hidden");
-
 }
 
 // Find Duplicates
@@ -341,6 +347,62 @@ function findDuplicates() {
         });
 }
 
+function showCleanTextPopup() {
+    //Shows the popup
+    document.getElementById('bulk-remove-text-popup').classList.remove('hidden');
+    //Resets all the fields to initial state
+    document.getElementById('bulk-remove-text-status').classList.add('hidden');
+    document.getElementById('bulk-remove-text').value = '';
+    document.getElementById('category').value = 'All Questions';
+    document.getElementById('bulk-remove-text').textContent = '';
+    document.getElementById('bulk-remove-text').focus();
+}
+
+function closeCleanTextPopup() {
+    //hides the popup
+    document.getElementById('bulk-remove-text-popup').classList.add('hidden');
+}
+
+function processCleanText() {
+    // Get the text from the textarea
+    let text = document.getElementById('bulk-remove-text').value;
+    // Get the selection - Question or Answers category
+    let category = document.getElementById('category').value;
+    let isQuestion = true
+    if (category.includes('answer')) {
+        isQuestion = false
+    }
+    console.log('Category:', category);
+    console.log('Text to remove:', text);
+    console.log('isQuestion:', isQuestion);
+    post_body = JSON.stringify({
+        'wrong_string': text,
+        'isQuestion': isQuestion,
+    });
+    console.log("Post Body -- ", post_body);
+    // Now call the clean_items_api API to remove the text
+    fetch('/clean_items', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: post_body,
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Cleaned text:', data);
+            const message = data.message + "\n Cleaned " + data.total_items + ". Found text in " + data.items_with_text + " items.";
+            // Update the textarea with the cleaned text
+            document.getElementById('bulk-remove-text-status').textContent = message;
+            document.getElementById('bulk-remove-text-status').classList.remove('hidden');
+            //refresh the list
+            window.location.reload();
+        })
+        .catch(error => {
+            console.error('Error cleaning text:', error);
+        });
+}
+
 window.onload = function () {
 // Event listener for 'Add New Row' button
     document.getElementById('add-row-btn').addEventListener('click', showAddNewQAPopup);
@@ -348,6 +410,11 @@ window.onload = function () {
 // Event listener for 'Upload File' button
     document.getElementById('import-jsonl-link').addEventListener('click', showUploadFilePopup);
     document.getElementById('import-csv-link').addEventListener('click', showUploadFilePopup);
+    // For the bulk text remover popup
+    document.getElementById('bulk-remove-text-link').addEventListener('click', showCleanTextPopup);
+    document.getElementById('bulk-remove-cancel-btn').addEventListener('click', closeCleanTextPopup);
+    document.getElementById('bulk-remove-run-btn').addEventListener('click', processCleanText);
+
 
 // Event listener for 'Cancel' button in the upload file popup
     document.getElementById('close-btn').addEventListener('click', hideUploadFilePopup);
@@ -365,6 +432,7 @@ window.onload = function () {
         if (event.key === 'Escape') {
             hideUploadFilePopup(event);
             hidePopup(event);
+            closeCleanTextPopup();
         }
     });
 

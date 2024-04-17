@@ -133,3 +133,4 @@ cython_debug/
 *.db
 *.jsonl
 *.csv
+*.ann

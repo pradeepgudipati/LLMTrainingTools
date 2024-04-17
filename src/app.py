@@ -3,11 +3,12 @@ from math import ceil
 
 from flask import Flask, render_template, request, jsonify, session, app, redirect, url_for
 from flask import send_file
+from sqlalchemy import inspect
 
 from src.data_tools.clean_data_in_db import clean_items
 from src.data_tools.database_utils import backup_db
 from src.data_tools.db_init import db
-from src.data_tools.duplicate_checker import check_duplicates
+from src.data_tools.duplicate_checker import duplicate_checker_vectors
 from src.data_tools.import_utils.csv_to_jsonl import convert_single_csv_to_jsonl
 from src.data_tools.import_utils.db_to_jsonl import sqlite_to_jsonl
 from src.data_tools.import_utils.jsonl_to_sqllite import import_jsonl_to_sqlite, test_jsonl_to_sqlite
@@ -20,7 +21,7 @@ DB_PATH = os.path.join(BASE_DIR, "data/qa_data.db")
 app = Flask(__name__, template_folder="frontend/templates", static_folder="frontend/static")
 
 
-# Setup the app with the database and default configurations
+# Set up the app with the database and default configurations
 def create_app():
     app.config["SECRET_KEY"] = (
         "NFi2d0K45FYcX1ZXAXJ6NM"  # Change this to a random secret key
@@ -68,6 +69,11 @@ def index(page=None):
     session["query-qa"] = query_qa
     session["query-ans"] = query_ans
 
+    # Check if the 'messages' table exists
+    inspector = inspect(db.engine)
+    if 'messages' not in inspector.get_table_names():
+        return jsonify(status="error", message="The messages table does not exist in the database."), 500
+
     # Ensure the page number is within the valid range
     total_items = LLMDataModel.query.count()
     total_pages = ceil(total_items / per_page)
@@ -103,8 +109,8 @@ def save_content(item_id):
     if item:
         item.answer = content
         db.session.commit()
-        return jsonify(status="success", message="Content saved.")
-    return jsonify(status="error", message="Item not found.")
+        return jsonify(status="success", message=f"Content for row {item_id} saved."), 200
+    return jsonify(status="error", message=f"Item {item_id} not found."), 400
 
 
 # API for updating the answer in the database
@@ -122,9 +128,9 @@ def update_answer():
         item.answer = content
         db.session.commit()
         db.session.close()
-        return "Content updated successfully", 200
+        return jsonify(status="success", message=f"Answer for {item_id} updated successfully"), 200
     else:
-        return "Item not found", 404
+        return jsonify(status="error", message=f"Item {item_id} not found"), 404
 
 
 # API for adding the question to the database
@@ -135,21 +141,19 @@ def add_new_qa():
     print(f"Adding new item: {new_item}")
     db.session.add(new_item)
     db.session.commit()
-    return jsonify(status="success", message="New item added.")
+    return jsonify(status="success", message=f"New item added."), 200
 
 
 # API for deleting the question from the database
 @app.route("/delete_question/<int:item_id>", methods=["DELETE"])
 def delete_qa(item_id):
-    print(f"Delete item_id: {item_id}")
     item = LLMDataModel.query.get(item_id)
-    print(f"Deleting Item: {item}")
 
     if item is not None:
         db.session.delete(item)
         db.session.commit()
-        return jsonify(status="success", message="Item deleted.")
-    return jsonify(status="error", message="Item not found.")
+        return jsonify(status="success", message=f"Item {item_id} deleted.")
+    return jsonify(status="error", message=f"Item {item_id} not found."), 400
 
 
 # API for updating the question in the database
@@ -165,13 +169,13 @@ def update_question():
     try:
         item = LLMDataModel.query.get(item_id)
         if not item:
-            return jsonify(status="error", message="Item not found."), 404
+            return jsonify(status="error", message=f"Item {item_id} not found."), 404
 
         item.question = new_question
         db.session.commit()
-        return jsonify(status="success", message="Question updated successfully.")
+        return jsonify(status="success", message=f"Question for row {item_id} updated successfully."), 200
     except Exception as ex:
-        return jsonify(status="error", message=str(ex)), 500
+        return jsonify(status="error", message=f"Update Question error :: {ex}"), 500
 
 
 # API for converting JSONL to SQLite
@@ -179,14 +183,14 @@ def update_question():
 def jsonl_to_db():
     # Check if the post request has the file part
     if 'file' not in request.files:
-        return 'No file part in the request.', 400
+        return jsonify(status="error", message="No file part in the request."), 400
 
     file = request.files['file']
 
     # If the user does not select a file, the browser submits an
     # empty file without a filename.
     if file.filename == '':
-        return 'No selected file.', 400
+        return jsonify(status="error", message="No selected file."), 400
 
     if file:
         upload_folder = app.config['UPLOAD_FOLDER']
@@ -197,8 +201,9 @@ def jsonl_to_db():
             import_jsonl_to_sqlite(jsonl_path, DB_PATH)
             test_jsonl_to_sqlite(jsonl_path, DB_PATH)
             backup_db(DB_PATH)
+            jsonify(status="success", message=f"File successfully uploaded and data imported to SQLite."), 200
         except Exception as e:
-            return f"Error converting JSONL to SQLite: {e}", 500
+            return jsonify(status="error", message=f"Error converting JSONL to SQLite: {e}"), 500
     #     Now refresh the page
     return redirect(url_for('index'))
 
@@ -208,14 +213,14 @@ def jsonl_to_db():
 def csv_to_jsonl():
     # Check if the post request has the file part
     if 'file' not in request.files:
-        return 'No file part in the request.', 400
+        return jsonify(status="error", message="No file part in the request."), 400
 
     file = request.files['file']
 
     # If the user does not select a file, the browser submits an
     # empty file without a filename.
     if file.filename == '':
-        return 'No selected file.', 400
+        return jsonify(status="error", message="No selected file."), 400
 
     if file:
         csv_path = save_file(file, app.config['UPLOAD_FOLDER'])
@@ -225,9 +230,9 @@ def csv_to_jsonl():
                 convert_single_csv_to_jsonl(csv_path, jsonl_path)
                 return send_file(jsonl_path, as_attachment=True)  # Send the SQLite file to the client
             else:
-                return 'Invalid CSV file.', 400
+                return jsonify(status="error", message="Invalid CSV file."), 400
         except Exception as e:
-            return f"Error converting CSV to JSONL: CSV format issue - {e}", 500
+            return jsonify(status="error", message=f"Error converting CSV to JSONL: CSV format issue - {e}"), 500
 
 
 # API for exporting SQLite to JSONL
@@ -252,13 +257,13 @@ def export_jsonl():
 def jsonl_to_sqlite():
     # Check if the post request has the file part
     if 'file' not in request.files:
-        return 'No file part in the request.', 400
+        return jsonify(status="error", message=f"No file part in the request."), 400
 
     file = request.files['file']
     # If the user does not select a file, the browser submits an
     # empty file without a filename.
     if file.filename == '':
-        return 'No selected file.', 400
+        return jsonify(status="error", message=f"No selected file."), 400
 
     if file:
         try:
@@ -266,11 +271,12 @@ def jsonl_to_sqlite():
             if validate_jsonl_file(jsonl_path):
                 backup_db(DB_PATH)
                 import_jsonl_to_sqlite(jsonl_path, "qa_data.db")
-                return 'File successfully uploaded and data imported to SQLite.', 200
+                return jsonify(status="success",
+                               message=f"File successfully uploaded and data imported to SQLite."), 200
             else:
-                return 'Invalid JSONL file.', 400
+                return jsonify(status="error", message=f"Invalid JSONL file."), 400
         except Exception as e:
-            return f"Error importing JSONL to SQLite: JSONL format error - {e}", 500
+            return jsonify(status="error", message=f"Error importing JSONL to SQLite: JSONL format error - {e}"), 500
 
 
 # API for checking duplicates in the questions or answers from the database.
@@ -279,42 +285,48 @@ def jsonl_to_sqlite():
 def duplicate_checker():
     is_question = request.args.get('isQuestion', default="true").lower() == "true"
     print(f"Is Question: {is_question}")
-    similar_items_indices = check_duplicates(is_question)
-    print(f"Similar Items: {similar_items_indices}")
+    duplicate_checker_vectors(is_question)
+    # similar_items_indices = check_duplicates(is_question)
+    # print(f"Similar Items: {similar_items_indices}")
 
     # Convert items to a format that can be JSON serialized
-    items_json = [item.to_dict() for item in similar_items_indices]  # Assuming each item has a to_dict() method
-    print(f"Items JSON: {items_json}")
+    # items_json = [item.to_dict() for item in similar_items_indices]  # Assuming each item has a to_dict() method
+    # print(f"Items JSON: {items_json}")
     # Pass the items to the template for rendering
-    return render_template(
-        "table_view.html",
-        data=items_json,
-        count=len(similar_items_indices),
-        per_page=session["per_page"],
-    )
+    # return render_template(
+    #     "table_view.html",
+    #     data=items_json,
+    #     count=len(similar_items_indices),
+    #     per_page=session["per_page"],
+    # )
+    return jsonify(status="success", message=f"Duplicate Checker API called."), 200
 
 
-# API for checking duplicates in the questions or answers from the database.
-# The API will have true or false in the request
-@app.route('/duplicate_checker_v2', methods=['GET'])
-def duplicate_checker_vectors():
-    pass
+# # API for checking duplicates in the questions or answers from the database.
+# # The API will have true or false in the request
+# @app.route('/duplicate_checker_v2', methods=['GET'])
+# def duplicate_checker_vectors():
+#     pass
 
 
 # API for cleaning the questions or answers in the database
 @app.route('/clean_items', methods=['POST'])
 def clean_items_api():
+    print(f"Request JSON: {request.json}")
     # First backup the database
     backup_db(DB_PATH)
     is_question = request.args.get('isQuestion', default="true").lower() == "true"
     wrong_string = request.json.get('wrong_string')
+    is_question_str = request.json.get('isQuestion')
+    print(f"Is Question: {is_question}, Wrong String: {wrong_string}, isQuestion_str: {is_question_str}")
     items, count = clean_items(wrong_string, is_question)
     print(f"Items: {items}, Count: {count}")
     # Convert items to a format that can be JSON serialized
     items_json = [item.to_dict() for item in items]  # Assuming each item has a to_dict() method
     db.session.commit()
     db.session.close()
-    return jsonify({'items': items_json, 'count': count, 'message': 'Questions cleaned successfully.'})
+    return jsonify(status="success", total_items=len(items_json), items_with_text=count,
+                   message="Questions cleaned successfully."), 200
 
 
 # Backup database and return the db file for download
@@ -329,13 +341,13 @@ def backup_database():
 def restore_database():
     # Check if the post request has the file part
     if 'file' not in request.files:
-        return 'No file part in the request.', 400
+        return jsonify(status="error", message=f"No file part in the request."), 400
 
     file = request.files['file']
     # If the user does not select a file, the browser submits an
     # empty file without a filename.
     if file.filename == '':
-        return 'No selected file.', 400
+        return jsonify(status="error", message=f"No selected file."), 400
 
     if file:
         try:
@@ -344,7 +356,7 @@ def restore_database():
             restored_db_path = backup_db(DB_PATH, backup_file_path)
             return send_file(restored_db_path, as_attachment=True)
         except Exception as e:
-            return f"Error restoring database: {e}", 500
+            return jsonify(status="error", message=f"Error restoring database: {e}"), 500
 
 
 if __name__ == "__main__":

@@ -1,12 +1,8 @@
 import csv
-import datetime
 import json
 import os
-import sqlite3
 
 from werkzeug.utils import secure_filename
-
-from src.models.llm_training_data_model import LLMDataModel
 
 
 # Validate the CSV file
