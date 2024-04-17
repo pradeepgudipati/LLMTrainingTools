@@ -53,13 +53,13 @@ def duplicate_checker_vectors(is_question):
     items_text = preprocess_text_items(db_items, is_question)
 
     # Convert your strings into vectors
-    X = vectorize_items(items_text)
+    vectors = vectorize_items(items_text)
 
     # Build Annoy index
-    f = X.shape[1]  # Length of item vector that will be indexed
+    f = vectors.shape[1]  # Length of item vector that will be indexed
     t = AnnoyIndex(f, 'angular')  # Length of item vector that will be indexed and 'angular' for cosine distance
-    for i in range(X.shape[0]):
-        v = X[i].toarray()[0]
+    for i in range(vectors.shape[0]):
+        v = vectors[i].toarray()[0]
         t.add_item(i, v)
 
     t.build(10)  # 10 trees
@@ -71,11 +71,11 @@ def duplicate_checker_vectors(is_question):
 
     # Find duplicates
     duplicates = []
-    for i in tqdm(range(X.shape[0]), desc="Checking for duplicates"):
-        v = X[i].toarray()[0]
+    for i in tqdm(range(vectors.shape[0]), desc="Checking for duplicates"):
+        v = vectors[i].toarray()[0]
         nearest = u.get_nns_by_vector(v, 2)  # find the 2 nearest neighbors
         if nearest[0] == i:  # if the nearest neighbor is itself
-            similarity = cosine_similarity(X[i].reshape(1, -1), X[nearest[1]].reshape(1, -1))
+            similarity = cosine_similarity(vectors[i].reshape(1, -1), vectors[nearest[1]].reshape(1, -1))
             if similarity[0][0] > 0.95:  # Adjust this threshold as needed
                 duplicates.append((db_items[i].id, db_items[i].question, db_items[i].answer, db_items[nearest[1]].id,
                                    db_items[nearest[1]].question, db_items[nearest[1]].answer))

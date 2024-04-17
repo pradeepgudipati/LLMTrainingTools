@@ -5,6 +5,12 @@ from data_tools.database_utils import get_all_items
 
 # Function to clean the questions and save the cleaned questions back to the database
 def clean_items(wrong_string, is_question=True):
+    """
+    Clean the questions or answers in the database
+    :param wrong_string: The string to be removed from the questions or answers
+    :param is_question: Check if the wrong string is in the question or answer
+    :return: items, count
+    """
     # Remove the "User:" in the questions
     items = get_all_items()
     count = 0

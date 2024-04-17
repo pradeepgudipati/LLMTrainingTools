@@ -18,11 +18,16 @@ from utils import validate_jsonl_file, validate_csv_file, save_file
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "data/qa_data.db")
 
+# noinspection PyRedeclaration
 app = Flask(__name__, template_folder="frontend/templates", static_folder="frontend/static")
 
 
 # Set up the app with the database and default configurations
 def create_app():
+    """
+    This function is used to create the app with the database and default configurations
+    :return: app
+    """
     app.config["SECRET_KEY"] = (
         "NFi2d0K45FYcX1ZXAXJ6NM"  # Change this to a random secret key
     )
@@ -40,6 +45,11 @@ def create_app():
 @app.route("/", methods=["GET"])
 @app.route("/page/<int:page>", methods=["GET"])
 def index(page=None):
+    """
+    This function is used to get the questions and answers from the database
+    :param page: Page number
+    :return:
+    """
     # Initialize the search queries with values from session
     query_qa = session.get("query-qa", "")
     query_ans = session.get("query-ans", "")
@@ -104,6 +114,11 @@ def index(page=None):
 # API for getting the question and answer from the database
 @app.route("/save/<int:item_id>", methods=["POST"])
 def save_content(item_id):
+    """
+    This function is used to save the content in the database
+    :param item_id: item id
+    :return: response
+    """
     content = request.form["content"]
     item = LLMDataModel.query.get(item_id)
     if item:
@@ -116,6 +131,10 @@ def save_content(item_id):
 # API for updating the answer in the database
 @app.route("/update_answer", methods=["POST"])
 def update_answer():
+    """
+    This function is used to update the answer in the database
+    :return: response
+    """
     data = request.json
     print(f"API received {data}")
     item_id = data.get("item_id")
@@ -136,6 +155,10 @@ def update_answer():
 # API for adding the question to the database
 @app.route("/add_question", methods=["POST"])
 def add_new_qa():
+    """
+    This function is used to add the question and answer to the database
+    :return: response
+    """
     data = request.json
     new_item = LLMDataModel(user=data["question"], assistant=data["answer"])
     print(f"Adding new item: {new_item}")
@@ -147,6 +170,11 @@ def add_new_qa():
 # API for deleting the question from the database
 @app.route("/delete_question/<int:item_id>", methods=["DELETE"])
 def delete_qa(item_id):
+    """
+    This function is used to delete the question and answer from the database
+    :param item_id: item id
+    :return: response
+    """
     item = LLMDataModel.query.get(item_id)
 
     if item is not None:
@@ -159,6 +187,10 @@ def delete_qa(item_id):
 # API for updating the question in the database
 @app.route("/update_question", methods=["POST"])
 def update_question():
+    """
+    This function is used to update the question in the database
+    :return: response
+    """
     data = request.json
     item_id = data.get("item_id")
     new_question = data.get("new_question")
@@ -181,6 +213,10 @@ def update_question():
 # API for converting JSONL to SQLite
 @app.route('/convert_jsonl_to_sqlite', methods=['POST'])
 def jsonl_to_db():
+    """
+    This function is used to convert the JSONL file to SQLite
+    :return: response
+    """
     # Check if the post request has the file part
     if 'file' not in request.files:
         return jsonify(status="error", message="No file part in the request."), 400
@@ -211,6 +247,10 @@ def jsonl_to_db():
 # API for converting CSV to JSONL
 @app.route('/convert_csv_to_jsonl', methods=['POST'])
 def csv_to_jsonl():
+    """
+    This function is used to convert the CSV file to JSONL
+    :return: response
+    """
     # Check if the post request has the file part
     if 'file' not in request.files:
         return jsonify(status="error", message="No file part in the request."), 400
@@ -238,6 +278,10 @@ def csv_to_jsonl():
 # API for exporting SQLite to JSONL
 @app.route('/export_jsonl_from_sqlite', methods=['GET'])
 def export_jsonl():
+    """
+    This function is used to export the SQLite database to JSONL
+    :return: response
+    """
     # Define the path to the SQLite database and the path where you want to save the JSONL file
     sql_file_path = os.path.join(BASE_DIR, "data/qa_data.db")
     print(f"BASE_DIR == {BASE_DIR}, sql_file_path: {sql_file_path}")
@@ -255,6 +299,10 @@ def export_jsonl():
 # API for importing JSONL file to SQLite
 @app.route('/import_jsonl_to_sqlite', methods=['POST'])
 def jsonl_to_sqlite():
+    """
+    This function is used to import the JSONL file to SQLite
+    :return: response
+    """
     # Check if the post request has the file part
     if 'file' not in request.files:
         return jsonify(status="error", message=f"No file part in the request."), 400
@@ -283,35 +331,24 @@ def jsonl_to_sqlite():
 # The API will have true or false in the request
 @app.route('/duplicate_checker', methods=['GET'])
 def duplicate_checker():
+    """
+    This function is used to check the duplicates in the questions or answers from the database
+    :return: response
+    """
     is_question = request.args.get('isQuestion', default="true").lower() == "true"
     print(f"Is Question: {is_question}")
     duplicate_checker_vectors(is_question)
-    # similar_items_indices = check_duplicates(is_question)
-    # print(f"Similar Items: {similar_items_indices}")
-
-    # Convert items to a format that can be JSON serialized
-    # items_json = [item.to_dict() for item in similar_items_indices]  # Assuming each item has a to_dict() method
-    # print(f"Items JSON: {items_json}")
-    # Pass the items to the template for rendering
-    # return render_template(
-    #     "table_view.html",
-    #     data=items_json,
-    #     count=len(similar_items_indices),
-    #     per_page=session["per_page"],
-    # )
+    # TODO - Implement the duplicate items view in the UI.
     return jsonify(status="success", message=f"Duplicate Checker API called."), 200
-
-
-# # API for checking duplicates in the questions or answers from the database.
-# # The API will have true or false in the request
-# @app.route('/duplicate_checker_v2', methods=['GET'])
-# def duplicate_checker_vectors():
-#     pass
 
 
 # API for cleaning the questions or answers in the database
 @app.route('/clean_items', methods=['POST'])
 def clean_items_api():
+    """
+    This function is used to clean the questions or answers in the database
+    :return: response
+    """
     print(f"Request JSON: {request.json}")
     # First backup the database
     backup_db(DB_PATH)
@@ -332,6 +369,10 @@ def clean_items_api():
 # Backup database and return the db file for download
 @app.route('/backup_db', methods=['GET'])
 def backup_database():
+    """
+    This function is used to back up the database
+    :return: response
+    """
     backup_file = backup_db(DB_PATH)
     return send_file(backup_file, as_attachment=True)
 
@@ -339,6 +380,10 @@ def backup_database():
 # API to restore a database from a backup file
 @app.route('/restore_db', methods=['POST'])
 def restore_database():
+    """
+    This function is used to restore the database from a backup file
+    :return: response
+    """
     # Check if the post request has the file part
     if 'file' not in request.files:
         return jsonify(status="error", message=f"No file part in the request."), 400

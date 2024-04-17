@@ -168,8 +168,8 @@ function hidePopup() {
 
 // Existing saveNewRow function, modified to handle POST request
 function saveNewRow() {
-    let question = document.getElementById('new-question').value;
-    let answer = newAnswerEditor.getData();
+    const question = document.getElementById('new-question').value;
+    const answer = newAnswerEditor.getData("");
 
     fetch('/add_question', {
         method: 'POST', headers: {
@@ -246,7 +246,7 @@ function handleUploadFilePopup(event) {
 }
 
 //  This function checks if the file is a CSV or JSONL file and based on that will call the appropriate function
-function processUploadedFile(event) {
+function processUploadedFile() {
     let formData = new FormData();
     const fileInput = document.getElementById('dropzone-file');
     let file = fileInput.files[0];
@@ -365,9 +365,9 @@ function closeCleanTextPopup() {
 
 function processCleanText() {
     // Get the text from the textarea
-    let text = document.getElementById('bulk-remove-text').value;
+    const text = document.getElementById('bulk-remove-text').value;
     // Get the selection - Question or Answers category
-    let category = document.getElementById('category').value;
+    const category = document.getElementById('category').value;
     let isQuestion = true
     if (category.includes('answer')) {
         isQuestion = false
@@ -375,7 +375,7 @@ function processCleanText() {
     console.log('Category:', category);
     console.log('Text to remove:', text);
     console.log('isQuestion:', isQuestion);
-    post_body = JSON.stringify({
+    const post_body = JSON.stringify({
         'wrong_string': text,
         'isQuestion': isQuestion,
     });

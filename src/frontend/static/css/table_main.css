@@ -42,7 +42,7 @@ nav ul li {
 }
 
 /* Position the dropdown menu absolutely relative to the parent element */
-#dropdownNavbar {
+.dropdownNavbar {
     position: absolute;
     top: 100%; /* Position it at the bottom of the parent element */
     left: 0; /* Align it to the left of the parent element */
