@@ -31,7 +31,8 @@
         <form action="{{ url_for('index') }}" method="get" class="flex items-center">
             <label for="page-number" class="mr-2">Go to page:</label>
             <input type="number" id="page-number" name="page"
-                   value="{{ request.args.get('page', default=session.get('page', 1)) }}" min="1" max="{{ data.pages }}"
+                   value="{{ request.args.get('page', default=session.get('page', 1)) }}" min="1"
+                   max="{{ total_pages }}"
                    class="px-2 py-1 border rounded" required>
             <button type="submit" class="ml-2 px-4 py-1 text-white bg-blue-500 rounded hover:bg-blue-600">Go</button>
         </form>
@@ -40,7 +41,9 @@
         <form action="{{ url_for('index') }}" method="get" class="flex items-center">
             <label for="rows-per-page" class="mr-2">Rows per page:</label>
             <input type="number" id="rows-per-page" name="per_page" min="1" class="px-2 py-1 border rounded"
-                   value="{{ request.args.get('per_page', default=session.get('per_page', 20)) }}" required>
+                   value="{{ request.args.get('per_page', default=session.get('per_page', 20)) }}"
+                   max="{{ 100 }}"
+                   required>
             <button type="submit" class="ml-2 px-4 py-1 text-white bg-blue-500 rounded hover:bg-blue-600">Set</button>
         </form>
 

@@ -249,43 +249,69 @@ function handleUploadFilePopup(event) {
     }
 }
 
+function downloadBlob(blob, fileName) {
+    // Create a new blob object
+    const newBlob = new Blob([blob]);
+
+    // Create a link element
+    const link = document.createElement('a');
+
+    // Create an object URL for the blob
+    const url = URL.createObjectURL(newBlob);
+
+    // Set the link's href to the object URL
+    link.href = url;
+
+    // Set the download attribute of the link to the desired file name
+    link.download = fileName;
+
+    // Append the link to the body
+    document.body.appendChild(link);
+
+    // Programmatically click the link to start the download
+    link.click();
+
+    // Once the download starts, remove the link element
+    document.body.removeChild(link);
+}
+
 //  This function checks if the file is a CSV or JSONL file and based on that will call the appropriate function
 function processUploadedFile() {
     let formData = new FormData();
     const fileInput = document.getElementById('dropzone-file');
-    let file = fileInput.files[0];
-    formData.append('file', file, upload_file_name); // append the file to the FormData object
-
+    const file = fileInput.files[0];
+    console.log('File:', file);
+    formData.append('file', file); // append the file to the FormData object
+    console.log('File:', file, 'FormData -- File :', formData.get('file'));
     if (upload_file_name.endsWith(".csv")) {
         // If the file is a CSV, convert it to JSONL and then import it to the database
         fetch('/api/convert_csv_to_jsonl', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: formData
         })
-            .then(response => response.json())
-            .then(data => {
-                console.log('CSV to JSONL conversion and import response:', data);
-                document.getElementById('file-error').textContent = "\n" + data;
+            .then(response => {
+                // Check if type of response is JSON or blob if json throw error
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                } else {
+                    return response.blob()
+                }
+            })
+            .then(blob => {
+                console.log('CSV to JSONL conversion response:', blob);
+                document.getElementById('file-error').textContent = "\n" + "File converted successfully";
                 document.getElementById('file-error').classList.remove("hidden");
                 // Show success message if the status is success else throw an error
-                if (data.status.toLowerCase().includes("success")) {
-                    document.getElementById('process-btn').classList.add("hidden");
-                    document.getElementById('reset-btn').classList.add("hidden");
-                    showToast("File imported successfully")
-                } else {
-                    showToast("Error converting file : " + data.message)
-                }
-
-
+                document.getElementById('process-btn').classList.add("hidden");
+                document.getElementById('reset-btn').classList.add("hidden");
+                // The JSONL file needs to be downloaded
+                downloadBlob(blob, "training_data.jsonl")
             })
             .catch((error) => {
-                console.error('Error:', error);
-                document.getElementById('file-error').textContent = "\n" + error;
+                console.error('Error Uploading CSV:', error);
+                document.getElementById('file-error').textContent = "\n" + error.message;
                 document.getElementById('file-error').classList.remove("hidden");
-                showToast("Error converting file")
+                showToast("Error converting file", error.message)
             });
 
     } else if (upload_file_name.endsWith(".jsonl")) {
@@ -293,28 +319,29 @@ function processUploadedFile() {
         // If the file is a JSONL, directly import it to the database
         fetch('/api/import_jsonl_to_sqlite', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: formData
         })
-            .then(response => response.json())
-            .then(data => {
-                console.log('JSONL import response:', data);
-
-                document.getElementById('file-success').textContent = "\n" + data;
+            .then(response => {
+                // Check if type of response is JSON or blob if json throw error
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                } else {
+                    return response.json()
+                }
+            })
+            .then(response => {
+                console.log('JSONL import response:', response);
+                document.getElementById('file-success').textContent = "\n" + "JSONL data imported successfully";
                 document.getElementById('file-success').classList.remove("hidden");
                 document.getElementById('file-error').classList.add("hidden");
                 document.getElementById('file-error').textContent = "";
+                document.getElementById('process-btn').classList.add("hidden");
+                document.getElementById('reset-btn').classList.add("hidden");
+                showToast("JSONL File imported successfully");
 
-                if (data.toLowerCase().includes("success")) {
-                    document.getElementById('process-btn').classList.add("hidden");
-                    document.getElementById('reset-btn').classList.add("hidden");
-                }
-                showToast("JSONL File imported successfully")
             })
             .catch((error) => {
-                document.getElementById('file-error').textContent = "\n" + error;
+                document.getElementById('file-error').textContent = "\n" + error.message;
                 document.getElementById('file-error').classList.remove("hidden");
                 showToast("Error importing JSONL file")
             });

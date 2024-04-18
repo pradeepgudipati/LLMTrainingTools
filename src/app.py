@@ -1,4 +1,5 @@
 import os
+import time
 
 from flask import Flask, render_template, request, jsonify, session, app, redirect, url_for
 from flask import send_file
@@ -30,7 +31,9 @@ def create_app():
 
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + DB_PATH
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config['UPLOAD_FOLDER'] = 'user_uploads/jsonl/'
+    app.config['UPLOAD_FOLDER_JSONL'] = 'user_uploads/jsonl/'
+    app.config['UPLOAD_FOLDER_CSV'] = 'user_uploads/csv/'
+    app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB
     try:
         db.init_app(app)
     except Exception as e:
@@ -47,14 +50,12 @@ def index(page=None):
     :return:
     """
     # Initialize the search queries with values from session
-    print(f"Session: {session}")
-    data, count, per_page, page, query_qa, query_ans = get_data()
-    print(f"Type of data == {type(data)}, and Type of count == {type(count)}")
-    print(f"Count: {count}")
+    data, count, per_page, page, total_pages, query_qa, query_ans = get_data()
     return render_template(
         "table_view.html",
         data=data,
         count=count,
+        total_pages=total_pages,
         page=page,
         per_page=per_page,
         query_qa=query_qa,
@@ -64,27 +65,26 @@ def index(page=None):
 
 @app.route("/api/data", methods=["GET"])
 def api_data():
-    data, count, per_page, page, query_qa, query_ans = get_data()
-    print(f"Type of data == {type(data)}, and Type of count == {type(count)}")
-    print(f"Count: {count}")
-    print(data)
+    data, count, per_page, page, total_pages, query_qa, query_ans = get_data()
     # Convert the data to a format that can be JSON serialized
     # items = [item.to_dict() for item in data]  # Assuming each item has a to_dict() method
 
     # Return the data as JSON
-    return jsonify(count=count, page_num=page, per_page_num=per_page, qa_query_txt=query_qa,
+    return jsonify(count=count, page_num=page, per_page_num=per_page, total_pages=total_pages, qa_query_txt=query_qa,
                    ans_query_txt=query_ans, items=data)
 
 
 def get_data():
+    """
+    This function is used to get the data from the database
+    :return: count of items, per page, page number, query_qa, query_ans and array of objects
+    """
     # Initialize the search queries with values from session
     query_qa = session.get("query-qa", "")
     query_ans = session.get("query-ans", "")
-    print(f"Query QA: {query_qa}, Query Ans: {query_ans}")
     per_page = request.args.get(
         "per_page", default=session.get("per_page", 50), type=int
     )
-    print(f"Per Page: {per_page}")
 
     # Check for new search queries in the request
     if "query-qa" in request.args:
@@ -108,7 +108,8 @@ def get_data():
 
     # Convert the data to a format that can be JSON serialized
     items = [item.to_dict() for item in data.items]  # Assuming each item has a to_dict() method
-    return items, count, per_page, page, query_qa, query_ans
+    total_pages = max(1, count / per_page)
+    return items, count, per_page, page, total_pages, query_qa, query_ans
 
 
 # API for getting the question and answer from the database
@@ -136,13 +137,11 @@ def update_answer():
     :return: response
     """
     data = request.json
-    print(f"API received {data}")
     item_id = data.get("item_id")
     content = data.get("content")
 
     # Update the content in the database based on 'item_id'
     item = LLMDataModel.query.get(item_id)
-    print(f"Item: {item} , Assistant content -- {item.answer}")
     if item:
         item.answer = content
         db.session.commit()
@@ -161,7 +160,6 @@ def add_new_qa():
     """
     data = request.json
     new_item = LLMDataModel(user=data["question"], assistant=data["answer"])
-    print(f"Adding new item: {new_item}")
     db.session.add(new_item)
     db.session.commit()
     return jsonify(status="success", message=f"New item added."), 200
@@ -264,15 +262,30 @@ def csv_to_jsonl():
         return jsonify(status="error", message=f"No selected file."), 400
 
     if file:
-        csv_path = save_file(file, app.config['UPLOAD_FOLDER'])
-        jsonl_path = "data/qa_data.jsonl"  # Replace with your JSONL file path
+        csv_file_path = os.path.join(app.config['UPLOAD_FOLDER_CSV'], file.filename)
+        if os.path.exists(csv_file_path):
+            os.remove(csv_file_path)
+        csv_path = save_file(file, app.config['UPLOAD_FOLDER_CSV'])
+        output_jsonl_path = os.path.join(app.config['UPLOAD_FOLDER_JSONL'], "downloads/training_data.jsonl")
+        print(f"CSV Path: {csv_path}, Output JSONL Path: {output_jsonl_path}")
         try:
             if validate_csv_file(csv_path):
-                convert_single_csv_to_jsonl(csv_path, jsonl_path)
-                return send_file(jsonl_path, as_attachment=True)  # Send the SQLite file to the client
+                try:
+                    convert_single_csv_to_jsonl(csv_path, output_jsonl_path)
+                    # Send the JSONL file to the client
+                    time.sleep(3)
+                    if os.path.exists(output_jsonl_path) and os.access(output_jsonl_path, os.R_OK):
+                        file = open(output_jsonl_path, 'rb')
+                        return send_file(file, as_attachment=True, download_name="training_data.jsonl",
+                                         mimetype="application/jsonl")
+                    else:
+                        print(f"File not present at the location: {output_jsonl_path}")
+                except Exception as e:
+                    return jsonify(status="error", message=f"Error converting CSV to JSONL: {e}"), 500
             else:
                 return jsonify(status="error", message="Invalid CSV file."), 400
         except Exception as e:
+            print(f"Error converting CSV to JSONL: {e}")
             return jsonify(status="error", message=f"Error converting CSV to JSONL: CSV format issue - {e}"), 500
 
 
@@ -295,7 +308,7 @@ def jsonl_to_sqlite():
 
     if file:
         try:
-            jsonl_path = save_file(file, app.config['UPLOAD_FOLDER'])
+            jsonl_path = save_file(file, app.config['UPLOAD_FOLDER_JSONL'])
             if validate_jsonl_file(jsonl_path):
                 backup_db(DB_PATH)
                 import_jsonl_to_sqlite(jsonl_path, "qa_data.db")
@@ -316,9 +329,7 @@ def export_jsonl():
     """
     # Define the path to the SQLite database and the path where you want to save the JSONL file
     sql_file_path = os.path.join(BASE_DIR, "data/qa_data.db")
-    print(f"BASE_DIR == {BASE_DIR}, sql_file_path: {sql_file_path}")
     jsonl_path = os.path.join(BASE_DIR, "data/qa_data.jsonl")
-    print(f"jsonl_path: {jsonl_path}")
     table_name = "messages"  # Replace with your table name
 
     # Call the sqlite_to_jsonl function
@@ -337,7 +348,6 @@ def duplicate_checker():
     :return: response
     """
     is_question = request.args.get('isQuestion', default="true").lower() == "true"
-    print(f"Is Question: {is_question}")
     count, dupl_list_file_path = duplicate_checker_vectors(is_question)
     # TODO - Implement the duplicate items view in the UI.
     return jsonify(status="success",
@@ -351,15 +361,12 @@ def clean_items_api():
     This function is used to clean the questions or answers in the database
     :return: response
     """
-    print(f"Request JSON: {request.json}")
     # First backup the database
     backup_db(DB_PATH)
     is_question = request.args.get('isQuestion', default="true").lower() == "true"
     wrong_string = request.json.get('wrong_string')
     is_question_str = request.json.get('isQuestion')
-    print(f"Is Question: {is_question}, Wrong String: {wrong_string}, isQuestion_str: {is_question_str}")
     items, count = clean_items(wrong_string, is_question)
-    print(f"Items: {items}, Count: {count}")
     # Convert items to a format that can be JSON serialized
     items_json = [item.to_dict() for item in items]  # Assuming each item has a to_dict() method
     db.session.commit()
