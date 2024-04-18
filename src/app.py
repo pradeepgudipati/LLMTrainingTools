@@ -1,9 +1,7 @@
 import os
-from math import ceil
 
 from flask import Flask, render_template, request, jsonify, session, app, redirect, url_for
 from flask import send_file
-from sqlalchemy import inspect
 
 from data_tools.clean_data_in_db import clean_items
 from data_tools.database_utils import backup_db
@@ -28,9 +26,7 @@ def create_app():
     This function is used to create the app with the database and default configurations
     :return: app
     """
-    app.config["SECRET_KEY"] = (
-        "NFi2d0K45FYcX1ZXAXJ6NM"  # Change this to a random secret key
-    )
+    app.config["SECRET_KEY"] = "NFi2d0K45FYcX1ZXAXJ6NM"  # Change this to a random secret key
 
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + DB_PATH
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -43,7 +39,7 @@ def create_app():
 
 # API for getting the question and answer from the database
 @app.route("/", methods=["GET"])
-@app.route("/page/<int:page>", methods=["GET"])
+@app.route("/api/ui/page/<int:page>", methods=["GET"])
 def index(page=None):
     """
     This function is used to get the questions and answers from the database
@@ -51,43 +47,53 @@ def index(page=None):
     :return:
     """
     # Initialize the search queries with values from session
+    print(f"Session: {session}")
+    data, count, per_page, page, query_qa, query_ans = get_data()
+    print(f"Type of data == {type(data)}, and Type of count == {type(count)}")
+    print(f"Count: {count}")
+    return render_template(
+        "table_view.html",
+        data=data,
+        count=count,
+        page=page,
+        per_page=per_page,
+        query_qa=query_qa,
+        query_ans=query_ans,
+    )
+
+
+@app.route("/api/data", methods=["GET"])
+def api_data():
+    data, count, per_page, page, query_qa, query_ans = get_data()
+    print(f"Type of data == {type(data)}, and Type of count == {type(count)}")
+    print(f"Count: {count}")
+    print(data)
+    # Convert the data to a format that can be JSON serialized
+    # items = [item.to_dict() for item in data]  # Assuming each item has a to_dict() method
+
+    # Return the data as JSON
+    return jsonify(count=count, page_num=page, per_page_num=per_page, qa_query_txt=query_qa,
+                   ans_query_txt=query_ans, items=data)
+
+
+def get_data():
+    # Initialize the search queries with values from session
     query_qa = session.get("query-qa", "")
     query_ans = session.get("query-ans", "")
+    print(f"Query QA: {query_qa}, Query Ans: {query_ans}")
     per_page = request.args.get(
-        "per_page", default=session.get("per_page", 20), type=int
+        "per_page", default=session.get("per_page", 50), type=int
     )
+    print(f"Per Page: {per_page}")
 
     # Check for new search queries in the request
     if "query-qa" in request.args:
         query_qa = request.args.get("query-qa")
-        if query_qa != session.get("query-qa", ""):
-            session["query-qa"] = query_qa
-            page = 1  # Reset page to 1 if there's a new search
     if "query-ans" in request.args:
         query_ans = request.args.get("query-ans")
-        if query_ans != session.get("query-ans", ""):
-            session["query-ans"] = query_ans
-            page = 1  # Reset page to 1 if there's a new search
 
     # Set the page number
-    if page is None:
-        page = request.args.get("page", default=session.get("page", 1), type=int)
-
-    # Save the session values.
-    session["per_page"] = per_page
-    session["page"] = page
-    session["query-qa"] = query_qa
-    session["query-ans"] = query_ans
-
-    # Check if the 'messages' table exists
-    inspector = inspect(db.engine)
-    if 'messages' not in inspector.get_table_names():
-        return jsonify(status="error", message="The messages table does not exist in the database."), 500
-
-    # Ensure the page number is within the valid range
-    total_items = LLMDataModel.query.count()
-    total_pages = ceil(total_items / per_page)
-    page = max(1, min(page, total_pages))
+    page = request.args.get("page", default=session.get("page", 1), type=int)
 
     # Construct the query based on filters
     query = LLMDataModel.query
@@ -100,19 +106,13 @@ def index(page=None):
     data = query.paginate(page=page, per_page=per_page, error_out=False)
     count = query.count()
 
-    return render_template(
-        "table_view.html",
-        data=data,
-        count=count,
-        page=page,
-        per_page=session["per_page"],
-        query_qa=session["query-qa"],
-        query_ans=session["query-ans"],
-    )
+    # Convert the data to a format that can be JSON serialized
+    items = [item.to_dict() for item in data.items]  # Assuming each item has a to_dict() method
+    return items, count, per_page, page, query_qa, query_ans
 
 
 # API for getting the question and answer from the database
-@app.route("/save/<int:item_id>", methods=["POST"])
+@app.route("/api/save/<int:item_id>", methods=["POST"])
 def save_content(item_id):
     """
     This function is used to save the content in the database
@@ -129,7 +129,7 @@ def save_content(item_id):
 
 
 # API for updating the answer in the database
-@app.route("/update_answer", methods=["POST"])
+@app.route("/api/update_answer", methods=["POST"])
 def update_answer():
     """
     This function is used to update the answer in the database
@@ -153,7 +153,7 @@ def update_answer():
 
 
 # API for adding the question to the database
-@app.route("/add_question", methods=["POST"])
+@app.route("/api/add_question", methods=["POST"])
 def add_new_qa():
     """
     This function is used to add the question and answer to the database
@@ -168,7 +168,7 @@ def add_new_qa():
 
 
 # API for deleting the question from the database
-@app.route("/delete_question/<int:item_id>", methods=["DELETE"])
+@app.route("/api/delete_question/<int:item_id>", methods=["DELETE"])
 def delete_qa(item_id):
     """
     This function is used to delete the question and answer from the database
@@ -185,7 +185,7 @@ def delete_qa(item_id):
 
 
 # API for updating the question in the database
-@app.route("/update_question", methods=["POST"])
+@app.route("/api/update_question", methods=["POST"])
 def update_question():
     """
     This function is used to update the question in the database
@@ -211,7 +211,7 @@ def update_question():
 
 
 # API for converting JSONL to SQLite
-@app.route('/convert_jsonl_to_sqlite', methods=['POST'])
+@app.route('/api/convert_jsonl_to_sqlite', methods=['POST'])
 def jsonl_to_db():
     """
     This function is used to convert the JSONL file to SQLite
@@ -245,26 +245,27 @@ def jsonl_to_db():
 
 
 # API for converting CSV to JSONL
-@app.route('/convert_csv_to_jsonl', methods=['POST'])
+@app.route('/api/convert_csv_to_jsonl', methods=['POST'])
 def csv_to_jsonl():
     """
     This function is used to convert the CSV file to JSONL
     :return: response
     """
+    print("Request data ::", request)
+    print("Request data ::", request.files)
     # Check if the post request has the file part
     if 'file' not in request.files:
-        return jsonify(status="error", message="No file part in the request."), 400
+        return jsonify(status="error", message=f"No File uploaded"), 400
 
     file = request.files['file']
-
     # If the user does not select a file, the browser submits an
     # empty file without a filename.
     if file.filename == '':
-        return jsonify(status="error", message="No selected file."), 400
+        return jsonify(status="error", message=f"No selected file."), 400
 
     if file:
         csv_path = save_file(file, app.config['UPLOAD_FOLDER'])
-        jsonl_path = "data_tools/import_utils/data/qa_data.jsonl"  # Replace with your JSONL file path
+        jsonl_path = "data/qa_data.jsonl"  # Replace with your JSONL file path
         try:
             if validate_csv_file(csv_path):
                 convert_single_csv_to_jsonl(csv_path, jsonl_path)
@@ -275,29 +276,8 @@ def csv_to_jsonl():
             return jsonify(status="error", message=f"Error converting CSV to JSONL: CSV format issue - {e}"), 500
 
 
-# API for exporting SQLite to JSONL
-@app.route('/export_jsonl_from_sqlite', methods=['GET'])
-def export_jsonl():
-    """
-    This function is used to export the SQLite database to JSONL
-    :return: response
-    """
-    # Define the path to the SQLite database and the path where you want to save the JSONL file
-    sql_file_path = os.path.join(BASE_DIR, "data/qa_data.db")
-    print(f"BASE_DIR == {BASE_DIR}, sql_file_path: {sql_file_path}")
-    jsonl_path = os.path.join(BASE_DIR, "data/qa_data.jsonl")
-    print(f"jsonl_path: {jsonl_path}")
-    table_name = "messages"  # Replace with your table name
-
-    # Call the sqllite_to_jsonl function
-    sqlite_to_jsonl(sql_file_path, jsonl_path, table_name)
-
-    # Send the JSONL file to the client
-    return send_file(jsonl_path, as_attachment=True)
-
-
 # API for importing JSONL file to SQLite
-@app.route('/import_jsonl_to_sqlite', methods=['POST'])
+@app.route('/api/import_jsonl_to_sqlite', methods=['POST'])
 def jsonl_to_sqlite():
     """
     This function is used to import the JSONL file to SQLite
@@ -305,7 +285,7 @@ def jsonl_to_sqlite():
     """
     # Check if the post request has the file part
     if 'file' not in request.files:
-        return jsonify(status="error", message=f"No file part in the request."), 400
+        return jsonify(status="error", message=f"No File uploaded"), 400
 
     file = request.files['file']
     # If the user does not select a file, the browser submits an
@@ -327,9 +307,30 @@ def jsonl_to_sqlite():
             return jsonify(status="error", message=f"Error importing JSONL to SQLite: JSONL format error - {e}"), 500
 
 
+# API for exporting SQLite to JSONL
+@app.route('/api/export_jsonl_from_sqlite', methods=['GET'])
+def export_jsonl():
+    """
+    This function is used to export the SQLite database to JSONL
+    :return: response
+    """
+    # Define the path to the SQLite database and the path where you want to save the JSONL file
+    sql_file_path = os.path.join(BASE_DIR, "data/qa_data.db")
+    print(f"BASE_DIR == {BASE_DIR}, sql_file_path: {sql_file_path}")
+    jsonl_path = os.path.join(BASE_DIR, "data/qa_data.jsonl")
+    print(f"jsonl_path: {jsonl_path}")
+    table_name = "messages"  # Replace with your table name
+
+    # Call the sqlite_to_jsonl function
+    sqlite_to_jsonl(sql_file_path, jsonl_path, table_name)
+
+    # Send the JSONL file to the client
+    return send_file(jsonl_path, as_attachment=True)
+
+
 # API for checking duplicates in the questions or answers from the database.
 # The API will have true or false in the request
-@app.route('/duplicate_checker', methods=['GET'])
+@app.route('/api/duplicate_checker', methods=['GET'])
 def duplicate_checker():
     """
     This function is used to check the duplicates in the questions or answers from the database
@@ -337,13 +338,14 @@ def duplicate_checker():
     """
     is_question = request.args.get('isQuestion', default="true").lower() == "true"
     print(f"Is Question: {is_question}")
-    duplicate_checker_vectors(is_question)
+    count, dupl_list_file_path = duplicate_checker_vectors(is_question)
     # TODO - Implement the duplicate items view in the UI.
-    return jsonify(status="success", message=f"Duplicate Checker API called."), 200
+    return jsonify(status="success",
+                   message=f"Duplicate Check completed. Found {count} duplicates. \n File name - {dupl_list_file_path}"), 200
 
 
 # API for cleaning the questions or answers in the database
-@app.route('/clean_items', methods=['POST'])
+@app.route('/api/clean_items', methods=['POST'])
 def clean_items_api():
     """
     This function is used to clean the questions or answers in the database
@@ -367,7 +369,7 @@ def clean_items_api():
 
 
 # Backup database and return the db file for download
-@app.route('/backup_db', methods=['GET'])
+@app.route('/api/backup_db', methods=['GET'])
 def backup_database():
     """
     This function is used to back up the database
@@ -378,7 +380,7 @@ def backup_database():
 
 
 # API to restore a database from a backup file
-@app.route('/restore_db', methods=['POST'])
+@app.route('/api/restore_db', methods=['POST'])
 def restore_database():
     """
     This function is used to restore the database from a backup file
