@@ -12,6 +12,7 @@ from data_tools.import_utils.csv_to_jsonl import convert_single_csv_to_jsonl
 from data_tools.import_utils.db_to_jsonl import sqlite_to_jsonl
 from data_tools.import_utils.jsonl_to_sqllite import import_jsonl_to_sqlite, test_jsonl_to_sqlite
 from models.llm_training_data_model import LLMDataModel
+from src.ai_api import call_openai_sdk
 from utils import validate_jsonl_file, validate_csv_file, save_file
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -109,6 +110,21 @@ def get_data():
     # Convert the data to a format that can be JSON serialized
     items = [item.to_dict() for item in data.items]  # Assuming each item has a to_dict() method
     total_pages = max(1, count / per_page)
+
+    # Verify that the page number is valid
+    if page < 1:
+        page = 1
+    if total_pages < page:
+        page = total_pages
+    #     Set the session variables for page and per_page
+    session["page"] = page
+    session["per_page"] = per_page
+    session["query-qa"] = query_qa
+    session["query-ans"] = query_ans
+    session["total_pages"] = total_pages
+
+    print(f"Total Items: {count}, Total Pages: {total_pages}, Page: {page}, Per Page: {per_page}")
+    print(f"Query QA: {query_qa}, Query Ans: {query_ans}")
     return items, count, per_page, page, total_pages, query_qa, query_ans
 
 
@@ -411,6 +427,27 @@ def restore_database():
             return send_file(restored_db_path, as_attachment=True)
         except Exception as e:
             return jsonify(status="error", message=f"Error restoring database: {e}"), 500
+
+
+@app.route('/qa_generator')
+def qa_generator():
+    """
+    This function is used to generate the question and answer
+    :return: response
+    """
+    return render_template("qa_generator.html")
+
+
+@app.route('/api/openai/qa_generator', methods=['POST'])
+def openai_qa_generator():
+    """
+    This function is used to generate the question and answer using the OpenAI API
+    The API calls the call_openai_sdk function from ai_api.py
+    :return: response
+    """
+    data = request.json['input_text']
+    result = call_openai_sdk(data)
+    return jsonify(status="success", message=f"Question and Answer generated successfully.", result=result), 200
 
 
 if __name__ == "__main__":

@@ -472,4 +472,6 @@ window.onload = function () {
     });
 
     document.getElementById('dropzone-file').addEventListener('change', handleUploadFilePopup);
+
+
 }
