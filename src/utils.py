@@ -10,7 +10,7 @@ def validate_csv_file(file_path):
     with open(file_path, 'r') as file:
         reader = csv.reader(file)
         headers = next(reader)
-        if headers != ['question', 'answer']:
+        if headers != ['Question', 'Answer']:
             return False
         for row in reader:
             if len(row) != 2:

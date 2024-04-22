@@ -10,8 +10,9 @@ function toggleQuestionEditor(item_id) {
     if (isEditing) {
         // Save the edited question
         let newQuestion = questionDiv.innerText;
-        fetch('/update_question', {
-            method: 'POST', headers: {
+        fetch('/api/update_question', {
+            method: 'POST',
+            headers: {
                 'Content-Type': 'application/json',
             }, body: JSON.stringify({
                 item_id: item_id, new_question: newQuestion
@@ -79,7 +80,7 @@ function toggleAnswerEditor(item_id) {
     if (contentDiv.getAttribute('contenteditable') === 'true') {
         // Switch to "Save" mode
         let data = editorInstance.getData("");
-        fetch('/update_answer', {
+        fetch('/api/update_answer', {
             method: 'POST', headers: {
                 'Content-Type': 'application/json',
             }, body: JSON.stringify({
@@ -168,10 +169,10 @@ function hidePopup() {
 
 // Existing saveNewRow function, modified to handle POST request
 function saveNewRow() {
-    let question = document.getElementById('new-question').value;
-    let answer = newAnswerEditor.getData();
+    const question = document.getElementById('new-question').value;
+    const answer = newAnswerEditor.getData("");
 
-    fetch('/add_question', {
+    fetch('/api/add_question', {
         method: 'POST', headers: {
             'Content-Type': 'application/json',
         }, body: JSON.stringify({
@@ -203,8 +204,11 @@ function deleteQAPair(item_id) {
     } else {
         console.log('Deleting item ID ' + item_id);
         if (confirm("Are you sure you want to delete this item?")) {
-            fetch('/delete_question/' + item_id, {
+            fetch('/api/delete_question/' + item_id, {
                 method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
             })
                 .then(response => response.json())
                 .then(data => {
@@ -245,74 +249,99 @@ function handleUploadFilePopup(event) {
     }
 }
 
+function downloadBlob(blob, fileName) {
+    // Create a new blob object
+    const newBlob = new Blob([blob]);
+
+    // Create a link element
+    const link = document.createElement('a');
+
+    // Create an object URL for the blob
+    const url = URL.createObjectURL(newBlob);
+
+    // Set the link's href to the object URL
+    link.href = url;
+
+    // Set the download attribute of the link to the desired file name
+    link.download = fileName;
+
+    // Append the link to the body
+    document.body.appendChild(link);
+
+    // Programmatically click the link to start the download
+    link.click();
+
+    // Once the download starts, remove the link element
+    document.body.removeChild(link);
+}
+
 //  This function checks if the file is a CSV or JSONL file and based on that will call the appropriate function
-function processUploadedFile(event) {
+function processUploadedFile() {
     let formData = new FormData();
     const fileInput = document.getElementById('dropzone-file');
-    let file = fileInput.files[0];
-    formData.append('file', file, upload_file_name); // append the file to the FormData object
-
+    const file = fileInput.files[0];
+    console.log('File:', file);
+    formData.append('file', file); // append the file to the FormData object
+    console.log('File:', file, 'FormData -- File :', formData.get('file'));
     if (upload_file_name.endsWith(".csv")) {
         // If the file is a CSV, convert it to JSONL and then import it to the database
-        fetch('/convert_csv_to_jsonl', {
+        fetch('/api/convert_csv_to_jsonl', {
             method: 'POST',
             body: formData
         })
-            .then(response => response.blob())
-            .then(data => {
-                // The response is a Blob object containing the JSONL file
-                // Create a new FormData object to send the JSONL file to the import_jsonl endpoint
-                let jsonlFormData = new FormData();
-                jsonlFormData.append('file', data, upload_file_name.replace('.csv', '.jsonl'));
-                showToast("File converted to JSONL")
-                return fetch('/import_jsonl_to_sqlite', {
-                    method: 'POST',
-                    body: jsonlFormData
-                });
-
-            })
-            .then(response => response.text())
-            .then(data => {
-                console.log('CSV to JSONL conversion and import response:', data);
-                document.getElementById('file-error').textContent = "\n" + data;
-                document.getElementById('file-error').classList.remove("hidden");
-                if (data.toLowerCase().includes("success")) {
-                    document.getElementById('process-btn').classList.add("hidden");
-                    document.getElementById('reset-btn').classList.add("hidden");
+            .then(response => {
+                // Check if type of response is JSON or blob if json throw error
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                } else {
+                    return response.blob()
                 }
-                showToast("File imported successfully")
+            })
+            .then(blob => {
+                console.log('CSV to JSONL conversion response:', blob);
+                document.getElementById('file-error').textContent = "\n" + "File converted successfully";
+                document.getElementById('file-error').classList.remove("hidden");
+                // Show success message if the status is success else throw an error
+                document.getElementById('process-btn').classList.add("hidden");
+                document.getElementById('reset-btn').classList.add("hidden");
+                // The JSONL file needs to be downloaded
+                downloadBlob(blob, "training_data.jsonl")
             })
             .catch((error) => {
-                console.error('Error:', error);
-                document.getElementById('file-error').textContent = "\n" + error;
+                console.error('Error Uploading CSV:', error);
+                document.getElementById('file-error').textContent = "\n" + error.message;
                 document.getElementById('file-error').classList.remove("hidden");
-                showToast("Error converting file")
+                showToast("Error converting file", error.message)
             });
 
     } else if (upload_file_name.endsWith(".jsonl")) {
         document.getElementById('message-table').classList.remove("hidden");
         // If the file is a JSONL, directly import it to the database
-        fetch('/import_jsonl_to_sqlite', {
+        fetch('/api/import_jsonl_to_sqlite', {
             method: 'POST',
             body: formData
         })
-            .then(response => response.text())
-            .then(data => {
-                console.log('JSONL import response:', data);
-
-                document.getElementById('file-success').textContent = "\n" + data;
+            .then(response => {
+                // Check if type of response is JSON or blob if json throw error
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                } else {
+                    return response.json()
+                }
+            })
+            .then(response => {
+                console.log('JSONL import response:', response);
+                document.getElementById('file-success').textContent = "\n" + "JSONL data imported successfully";
                 document.getElementById('file-success').classList.remove("hidden");
                 document.getElementById('file-error').classList.add("hidden");
                 document.getElementById('file-error').textContent = "";
+                document.getElementById('process-btn').classList.add("hidden");
+                document.getElementById('reset-btn').classList.add("hidden");
+                showToast("JSONL File imported successfully");
 
-                if (data.toLowerCase().includes("success")) {
-                    document.getElementById('process-btn').classList.add("hidden");
-                    document.getElementById('reset-btn').classList.add("hidden");
-                }
-                showToast("JSONL File imported successfully")
             })
             .catch((error) => {
-                document.getElementById('file-error').textContent = "\n" + error;
+                document.getElementById('file-error').textContent = "\n" + error.message;
                 document.getElementById('file-error').classList.remove("hidden");
                 showToast("Error importing JSONL file")
             });
@@ -333,14 +362,20 @@ function resetUploadFilePopup() {
 
 // Find Duplicates
 function findDuplicates() {
+    showToast("Finding duplicates - Please wait...")
     // Send a request to a new server-side route that will return only the duplicate rows
-    fetch('/duplicate_checker', {
+    fetch('/api/duplicate_checker', {
         method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
     })
-        .then(response => response.text())  // Change this line to handle HTML responses
+        .then(response => response.json())  // Change this line to handle HTML responses
         .then(data => {
-            // The server should return the HTML for the new table, which can replace the old table
-            document.body.innerHTML = data;  // Replace the entire body of the document
+            // TODO: The server should return the HTML for the new table, which can replace the old table
+            console.log('Duplicate checker response:', data);
+            showToast("Task Completed - " + data.message, false); // Handle success or error message
+            // showToast("Duplicate File generated successfully")
         })
         .catch((error) => {
             console.error('Error:', error);
@@ -365,9 +400,9 @@ function closeCleanTextPopup() {
 
 function processCleanText() {
     // Get the text from the textarea
-    let text = document.getElementById('bulk-remove-text').value;
+    const text = document.getElementById('bulk-remove-text').value;
     // Get the selection - Question or Answers category
-    let category = document.getElementById('category').value;
+    const category = document.getElementById('category').value;
     let isQuestion = true
     if (category.includes('answer')) {
         isQuestion = false
@@ -375,13 +410,13 @@ function processCleanText() {
     console.log('Category:', category);
     console.log('Text to remove:', text);
     console.log('isQuestion:', isQuestion);
-    post_body = JSON.stringify({
+    const post_body = JSON.stringify({
         'wrong_string': text,
         'isQuestion': isQuestion,
     });
     console.log("Post Body -- ", post_body);
     // Now call the clean_items_api API to remove the text
-    fetch('/clean_items', {
+    fetch('/api/clean_items', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -437,4 +472,6 @@ window.onload = function () {
     });
 
     document.getElementById('dropzone-file').addEventListener('change', handleUploadFilePopup);
+
+
 }
