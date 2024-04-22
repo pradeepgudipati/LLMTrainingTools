@@ -136,8 +136,8 @@ This python code converts the jsonl data to a sqllite database with a table call
 The messages table has 3 rows
 
 1. id - Primary key
-2. User - Contains the Question
-3. Assistant - Contains the answer to the Question
+2. Question - Contains the Question
+3. Answer - Contains the answer to the Question
 
 ### 2. DB to JSONL 
  - SQLite to JSONL Converter code - [db_to_jsonl.py](jsonl_data_to_db%2Fdb_to_jsonl.py)

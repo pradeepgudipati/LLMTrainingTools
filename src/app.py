@@ -175,7 +175,7 @@ def add_new_qa():
     :return: response
     """
     data = request.json
-    new_item = LLMDataModel(user=data["question"], assistant=data["answer"])
+    new_item = LLMDataModel(question=data["question"], answer=data["answer"])
     db.session.add(new_item)
     db.session.commit()
     return jsonify(status="success", message=f"New item added."), 200
