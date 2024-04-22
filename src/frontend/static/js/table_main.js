@@ -4,6 +4,7 @@ let upload_file_name = "";
 // Toggle Edit or Save Question buttons
 function toggleQuestionEditor(item_id) {
     const questionDiv = document.getElementById('question-' + item_id);
+    const innerDiv = questionDiv.querySelector('div');
     const isEditing = questionDiv.getAttribute('contenteditable');
     const question_btn_text_field = document.getElementById('q-edit-button-text-' + item_id);
     const question_btn_icon_field = document.getElementById('q-edit-button-icon-' + item_id);
@@ -27,6 +28,7 @@ function toggleQuestionEditor(item_id) {
             });
 
         questionDiv.setAttribute('contenteditable', 'false');
+        innerDiv.setAttribute('contenteditable', 'false');
         questionDiv.classList.remove('editing');
         question_btn_text_field.innerText = 'Edit Q';
         question_btn_icon_field.src = staticUrl + "res/questionEditIcon.svg";
@@ -34,6 +36,7 @@ function toggleQuestionEditor(item_id) {
     } else {
         // Enable editing
         questionDiv.setAttribute('contenteditable', 'true');
+        innerDiv.setAttribute('contenteditable', 'true');
         questionDiv.classList.add('editing');
         questionDiv.focus();
 
