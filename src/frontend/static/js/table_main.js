@@ -4,10 +4,10 @@ let upload_file_name = "";
 // Toggle Edit or Save Question buttons
 function toggleQuestionEditor(item_id) {
     const questionDiv = document.getElementById('question-' + item_id);
-    const isEditing = questionDiv.getAttribute('contenteditable') === 'true';
+    const isEditing = questionDiv.getAttribute('contenteditable');
     const question_btn_text_field = document.getElementById('q-edit-button-text-' + item_id);
     const question_btn_icon_field = document.getElementById('q-edit-button-icon-' + item_id);
-    if (isEditing) {
+    if (isEditing === 'true') {
         // Save the edited question
         let newQuestion = questionDiv.innerText;
         fetch('/api/update_question', {
@@ -39,7 +39,6 @@ function toggleQuestionEditor(item_id) {
 
         question_btn_text_field.innerText = 'Save';
         question_btn_icon_field.src = staticUrl + "res/saveIcon.svg";
-        questionDiv.focus();
         questionDiv.classList.add('editing');
     }
 }

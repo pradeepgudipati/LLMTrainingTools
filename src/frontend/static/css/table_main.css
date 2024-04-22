@@ -5,6 +5,7 @@
 /* CSS class for CKEditor field in edit mode */
 .editing {
     background-color: cornsilk !important;
+    border: black 3px solid;
 }
 
 .not-editing {
