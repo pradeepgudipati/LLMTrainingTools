@@ -7,6 +7,7 @@ from flask import send_file
 from data_tools.clean_data_in_db import clean_items
 from data_tools.database_utils import backup_db
 from data_tools.db_init import db
+from data_tools.dup_checker_chromadb import duplicate_checker_chromadb
 from data_tools.duplicate_checker import duplicate_checker_vectors
 from data_tools.import_utils.csv_to_jsonl import convert_single_csv_to_jsonl
 from data_tools.import_utils.db_to_jsonl import sqlite_to_jsonl
@@ -20,6 +21,13 @@ DB_PATH = os.path.join(BASE_DIR, "data/qa_data.db")
 
 # noinspection PyRedeclaration
 app = Flask(__name__, template_folder="frontend/templates", static_folder="frontend/static")
+
+# variables
+page_num = 1
+per_page = 50
+total_pages = 1
+query_qa = ""
+query_ans = ""
 
 
 # Set up the app with the database and default configurations
@@ -50,6 +58,14 @@ def index(page=None):
     :param page: Page number
     :return:
     """
+    global page_num, per_page, total_pages, query_qa, query_ans
+    # Get the session variables for page and per_page and set them as the default values
+    page_num = request.args.get('page', default=session.get('page', 1), type=int)
+    per_page = session.get("per_page", 50)
+    total_pages = session.get("total_pages", 1)
+    query_qa = session.get("query-qa", "")
+    query_ans = session.get("query-ans", "")
+    print(f"INDEX ::: Page: {page_num}, Per Page: {per_page}, Total Pages: {total_pages}, Query QA: {query_qa}, ")
     # Initialize the search queries with values from session
     data, count, per_page, page, total_pages, query_qa, query_ans = get_data()
     return render_template(
@@ -66,6 +82,14 @@ def index(page=None):
 
 @app.route("/api/data", methods=["GET"])
 def api_data():
+    global page_num, per_page, total_pages, query_qa, query_ans
+    # Get the session variables for page and per_page and set them as the default values
+    page_num = request.args.get('page', default=session.get('page', 1), type=int)
+    per_page = request.args.get("per_page", default=50, type=int)
+    query_qa = request.args.get("query_qa", "")
+    query_ans = request.args.get("query_ans", "")
+    print(f"api_data ::: Page: {page_num}, Per Page: {per_page}, Query QA: {query_qa}, Query Ans: {query_ans}")
+
     data, count, per_page, page, total_pages, query_qa, query_ans = get_data()
     # Convert the data to a format that can be JSON serialized
     # items = [item.to_dict() for item in data]  # Assuming each item has a to_dict() method
@@ -81,22 +105,9 @@ def get_data():
     :return: count of items, per page, page number, query_qa, query_ans and array of objects
     """
     # Initialize the search queries with values from session
-    query_qa = session.get("query-qa", "")
-    query_ans = session.get("query-ans", "")
-    per_page = request.args.get(
-        "per_page", default=session.get("per_page", 50), type=int
-    )
-
-    # Check for new search queries in the request
-    if "query-qa" in request.args:
-        query_qa = request.args.get("query-qa")
-    if "query-ans" in request.args:
-        query_ans = request.args.get("query-ans")
-
-    # Set the page number
-    page = request.args.get("page", default=session.get("page", 1), type=int)
-
     # Construct the query based on filters
+    global page_num, per_page, total_pages, query_qa, query_ans
+    print(f"GET DATA ::: Query QA: {query_qa}, Query Ans: {query_ans}, Page: {page_num}, Per Page: {per_page}")
     query = LLMDataModel.query
     if query_qa:
         query = query.filter(LLMDataModel.question.contains(query_qa))
@@ -104,7 +115,7 @@ def get_data():
         query = query.filter(LLMDataModel.answer.contains(query_ans))
 
     # Apply pagination
-    data = query.paginate(page=page, per_page=per_page, error_out=False)
+    data = query.paginate(page=page_num, per_page=per_page, error_out=False)
     count = query.count()
 
     # Convert the data to a format that can be JSON serialized
@@ -112,20 +123,12 @@ def get_data():
     total_pages = max(1, count / per_page)
 
     # Verify that the page number is valid
-    if page < 1:
-        page = 1
-    if total_pages < page:
-        page = total_pages
-    #     Set the session variables for page and per_page
-    session["page"] = page
-    session["per_page"] = per_page
-    session["query-qa"] = query_qa
-    session["query-ans"] = query_ans
-    session["total_pages"] = total_pages
+    if page_num < 1:
+        page_num = 1
+    if total_pages < page_num:
+        page_num = total_pages
 
-    print(f"Total Items: {count}, Total Pages: {total_pages}, Page: {page}, Per Page: {per_page}")
-    print(f"Query QA: {query_qa}, Query Ans: {query_ans}")
-    return items, count, per_page, page, total_pages, query_qa, query_ans
+    return items, count, per_page, page_num, total_pages, query_qa, query_ans
 
 
 # API for getting the question and answer from the database
@@ -365,6 +368,21 @@ def duplicate_checker():
     """
     is_question = request.args.get('isQuestion', default="true").lower() == "true"
     count, dupl_list_file_path = duplicate_checker_vectors(is_question)
+    # TODO - Implement the duplicate items view in the UI.
+    return jsonify(status="success",
+                   message=f"Duplicate Check completed. Found {count} duplicates. \n File name - {dupl_list_file_path}"), 200
+
+
+# API for checking duplicates in the questions or answers from the database.
+# The API will have true or false in the request
+@app.route('/api/v2/duplicate_checker', methods=['GET'])
+def duplicate_checker_fs():
+    """
+    This function is used to check the duplicates in the questions or answers from the database
+    :return: response
+    """
+    is_question = request.args.get('isQuestion', default="true").lower() == "true"
+    count, dupl_list_file_path = duplicate_checker_chromadb(is_question)
     # TODO - Implement the duplicate items view in the UI.
     return jsonify(status="success",
                    message=f"Duplicate Check completed. Found {count} duplicates. \n File name - {dupl_list_file_path}"), 200

@@ -133,3 +133,5 @@ cython_debug/
 *.csv
 *.ann
 /chroma_db
+/llmenv
+/llmenv

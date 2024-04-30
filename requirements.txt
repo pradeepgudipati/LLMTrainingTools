@@ -21,4 +21,6 @@ annoy==1.17.3
 nltk==3.8.1
 numpy==1.26.4
 openai==1.23.2
-
+sentence-transformers==2.7.0
+chromadb
+pandas
