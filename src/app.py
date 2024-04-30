@@ -157,7 +157,7 @@ def update_answer():
     """
     data = request.json
     item_id = data.get("item_id")
-    content = data.get("content")
+    content = data.get("new_answer")
 
     # Update the content in the database based on 'item_id'
     item = LLMDataModel.query.get(item_id)
