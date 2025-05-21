@@ -18,7 +18,7 @@ transformers===4.50.0
 pydotenv==0.0.7
 pinecone-client==3.2.2
 annoy==1.17.3
-nltk==3.8.1
+nltk==3.9.1
 numpy==1.26.4
 openai==1.23.2
 
