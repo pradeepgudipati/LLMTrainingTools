@@ -22,8 +22,8 @@ LLMTrainingTools is a Python Flask web application that provides utilities for c
   - `data_tools/` - Data conversion and management utilities
   - `frontend/` - HTML templates and static files
   - `models/` - SQLAlchemy data models
+  - `data/qa_data.db` - SQLite database file (relative to src/ directory)
 - `requirements.txt` - Python dependencies
-- Database path: `src/data/qa_data.db`
 
 ## Coding Standards
 
