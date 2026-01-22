@@ -8,7 +8,7 @@ description: "Custom instructions for LLMTrainingTools - Python Flask applicatio
 LLMTrainingTools is a Python Flask web application that provides utilities for creating and managing training data for Large Language Models (LLMs). The tool enables conversion between JSONL and SQLite formats, CSV to JSONL conversion, and provides a web UI for editing training data.
 
 ## Tech Stack
-- **Backend**: Python 3.6+, Flask 3.0.3
+- **Backend**: Python 3.8+ (3.6 listed in README but recommend 3.8+ for security), Flask 3.0.3
 - **Database**: SQLite with SQLAlchemy 2.0.29 and Flask-SQLAlchemy 3.1.1
 - **Template Engine**: Jinja2 3.1.6
 - **ML Libraries**: PyTorch 2.8.0, Transformers 4.53.0, scikit-learn 1.5.0
@@ -76,14 +76,15 @@ LLMTrainingTools is a Python Flask web application that provides utilities for c
 
 ## Security Considerations
 - Never commit database files or uploaded user data
-- Keep secret keys in environment variables (not hardcoded)
+- Keep secret keys in environment variables (not hardcoded in production code)
+  - Note: Current code has hardcoded secret key in app.py - should be moved to environment variables
 - Validate and sanitize all file uploads
 - Use parameterized queries for all database operations
 
 ## Dependencies
 - Add new dependencies to `requirements.txt`
 - Pin versions for stability (use `~=` for compatible releases)
-- Check compatibility with Python 3.6+ before adding new packages
+- Check compatibility with Python 3.8+ before adding new packages
 
 ## IDE Recommendations
 - PyCharm (preferred) or VS Code
