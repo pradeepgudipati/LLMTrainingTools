@@ -14,7 +14,7 @@ Werkzeug==3.1.5
 scikit-learn==1.5.0
 pymilvus
 torch==2.8.0
-transformers===4.53.0
+transformers===5.0.0rc3
 pydotenv~=3.1.0
 pinecone-client==3.2.2
 annoy==1.17.3
