@@ -407,9 +407,10 @@ def duplicate_checker():
     try:
         from .data_tools.duplicate_checker import duplicate_checker_vectors
     except ImportError as exc:
+        app.logger.exception("Duplicate checker dependencies are not installed.")
         return jsonify(
             status="error",
-            message=f"Duplicate checking dependencies are not installed: {exc}",
+            message="Duplicate checking dependencies are not installed.",
         ), 503
 
     count, dupl_list_file_path = duplicate_checker_vectors(is_question)
