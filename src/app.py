@@ -1,19 +1,19 @@
 import os
+import shutil
 import time
+import uuid
 
-from flask import Flask, render_template, request, jsonify, session, app, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask import send_file
 
-from data_tools.clean_data_in_db import clean_items
-from data_tools.database_utils import backup_db
-from data_tools.db_init import db
-from data_tools.duplicate_checker import duplicate_checker_vectors
-from data_tools.import_utils.csv_to_jsonl import convert_single_csv_to_jsonl
-from data_tools.import_utils.db_to_jsonl import sqlite_to_jsonl
-from data_tools.import_utils.jsonl_to_sqllite import import_jsonl_to_sqlite, test_jsonl_to_sqlite
-from models.llm_training_data_model import LLMDataModel
-from src.ai_api import call_openai_sdk
-from utils import validate_jsonl_file, validate_csv_file, save_file
+from .data_tools.clean_data_in_db import clean_items
+from .data_tools.database_utils import backup_db
+from .data_tools.db_init import db
+from .data_tools.import_utils.csv_to_jsonl import convert_single_csv_to_jsonl
+from .data_tools.import_utils.db_to_jsonl import sqlite_to_jsonl
+from .data_tools.import_utils.jsonl_to_sqllite import import_jsonl_to_sqlite, test_jsonl_to_sqlite
+from .models.llm_training_data_model import LLMDataModel
+from .utils import validate_jsonl_file, validate_csv_file, save_file
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "data/qa_data.db")
@@ -32,13 +32,26 @@ def create_app():
 
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + DB_PATH
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config['UPLOAD_FOLDER_JSONL'] = 'user_uploads/jsonl/'
-    app.config['UPLOAD_FOLDER_CSV'] = 'user_uploads/csv/'
+
+    # Set upload folders with absolute paths
+    upload_base = os.path.join(BASE_DIR, 'user_uploads')
+    app.config['UPLOAD_FOLDER'] = os.path.join(upload_base, 'uploads/')
+    app.config['UPLOAD_FOLDER_JSONL'] = os.path.join(upload_base, 'jsonl/')
+    app.config['UPLOAD_FOLDER_CSV'] = os.path.join(upload_base, 'csv/')
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB
+
+    # Create upload directories if they don't exist
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(app.config['UPLOAD_FOLDER_JSONL'], exist_ok=True)
+    os.makedirs(app.config['UPLOAD_FOLDER_CSV'], exist_ok=True)
+    os.makedirs(os.path.join(app.config['UPLOAD_FOLDER_JSONL'], 'downloads'), exist_ok=True)
+
     try:
         db.init_app(app)
     except Exception as e:
         print(f"DB initializing Exception: {e}")
+
+    return app
 
 
 # API for getting the question and answer from the database
@@ -50,18 +63,23 @@ def index(page=None):
     :param page: Page number
     :return:
     """
-    # Initialize the search queries with values from session
-    data, count, per_page, page, total_pages, query_qa, query_ans = get_data()
-    return render_template(
-        "table_view.html",
-        data=data,
-        count=count,
-        total_pages=total_pages,
-        page=page,
-        per_page=per_page,
-        query_qa=query_qa,
-        query_ans=query_ans,
-    )
+    try:
+        # Initialize the search queries with values from session
+        data, count, per_page, page, total_pages, query_qa, query_ans = get_data()
+        return render_template(
+            "table_view.html",
+            data=data,
+            count=count,
+            total_pages=total_pages,
+            page=page,
+            per_page=per_page,
+            query_qa=query_qa,
+            query_ans=query_ans,
+        )
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        return "An internal error has occurred.", 500
 
 
 @app.route("/api/data", methods=["GET"])
@@ -128,6 +146,44 @@ def get_data():
     return items, count, per_page, page, total_pages, query_qa, query_ans
 
 
+def has_training_data():
+    return training_data_count() > 0
+
+
+def training_data_count():
+    return LLMDataModel.query.count()
+
+
+def no_training_data_response(action):
+    return jsonify(
+        status="error",
+        message=f"Add or import training data before running {action}.",
+    ), 409
+
+
+def save_uploaded_file(file, upload_folder, extension):
+    filename = f"{uuid.uuid4().hex}{extension}"
+    upload_dir = os.path.realpath(upload_folder)
+    file_path = os.path.realpath(os.path.join(upload_dir, filename))
+
+    if not file_path.startswith(upload_dir + os.sep):
+        raise ValueError("Invalid upload path.")
+
+    os.makedirs(upload_dir, exist_ok=True)
+    with open(file_path, "wb") as output_file:
+        shutil.copyfileobj(file.stream, output_file)
+
+    return file_path
+
+
+def save_uploaded_jsonl(file, upload_folder):
+    return save_uploaded_file(file, upload_folder, ".jsonl")
+
+
+def save_uploaded_csv(file, upload_folder):
+    return save_uploaded_file(file, upload_folder, ".csv")
+
+
 # API for getting the question and answer from the database
 @app.route("/api/save/<int:item_id>", methods=["POST"])
 def save_content(item_id):
@@ -178,7 +234,7 @@ def add_new_qa():
     new_item = LLMDataModel(question=data["question"], answer=data["answer"])
     db.session.add(new_item)
     db.session.commit()
-    return jsonify(status="success", message=f"New item added."), 200
+    return jsonify(status="success", message="New item added."), 200
 
 
 # API for deleting the question from the database
@@ -241,19 +297,25 @@ def jsonl_to_db():
     # empty file without a filename.
     if file.filename == '':
         return jsonify(status="error", message="No selected file."), 400
+    if not file.filename.lower().endswith(".jsonl"):
+        return jsonify(status="error", message="Only JSONL files are supported."), 400
 
     if file:
         upload_folder = app.config['UPLOAD_FOLDER']
-        jsonl_path = save_file(file, upload_folder)
+        jsonl_path = save_uploaded_jsonl(file, upload_folder)
 
         try:
             backup_db(DB_PATH)
             import_jsonl_to_sqlite(jsonl_path, DB_PATH)
             test_jsonl_to_sqlite(jsonl_path, DB_PATH)
             backup_db(DB_PATH)
-            jsonify(status="success", message=f"File successfully uploaded and data imported to SQLite."), 200
-        except Exception as e:
-            return jsonify(status="error", message=f"Error converting JSONL to SQLite: {e}"), 500
+            return jsonify(
+                status="success",
+                message="File successfully uploaded and data imported to SQLite.",
+            ), 200
+        except Exception:
+            app.logger.exception("Error converting JSONL to SQLite")
+            return jsonify(status="error", message="Error converting JSONL to SQLite."), 500
     #     Now refresh the page
     return redirect(url_for('index'))
 
@@ -269,19 +331,18 @@ def csv_to_jsonl():
     print("Request data ::", request.files)
     # Check if the post request has the file part
     if 'file' not in request.files:
-        return jsonify(status="error", message=f"No File uploaded"), 400
+        return jsonify(status="error", message="No File uploaded"), 400
 
     file = request.files['file']
     # If the user does not select a file, the browser submits an
     # empty file without a filename.
     if file.filename == '':
-        return jsonify(status="error", message=f"No selected file."), 400
+        return jsonify(status="error", message="No selected file."), 400
+    if not file.filename.lower().endswith(".csv"):
+        return jsonify(status="error", message="Only CSV files are supported."), 400
 
     if file:
-        csv_file_path = os.path.join(app.config['UPLOAD_FOLDER_CSV'], file.filename)
-        if os.path.exists(csv_file_path):
-            os.remove(csv_file_path)
-        csv_path = save_file(file, app.config['UPLOAD_FOLDER_CSV'])
+        csv_path = save_uploaded_csv(file, app.config['UPLOAD_FOLDER_CSV'])
         output_jsonl_path = os.path.join(app.config['UPLOAD_FOLDER_JSONL'], "downloads/training_data.jsonl")
         print(f"CSV Path: {csv_path}, Output JSONL Path: {output_jsonl_path}")
         try:
@@ -291,11 +352,14 @@ def csv_to_jsonl():
                     # Send the JSONL file to the client
                     time.sleep(3)
                     if os.path.exists(output_jsonl_path) and os.access(output_jsonl_path, os.R_OK):
-                        file = open(output_jsonl_path, 'rb')
-                        return send_file(file, as_attachment=True, download_name="training_data.jsonl",
-                                         mimetype="application/jsonl")
-                    else:
-                        print(f"File not present at the location: {output_jsonl_path}")
+                        return send_file(
+                            output_jsonl_path,
+                            as_attachment=True,
+                            download_name="training_data.jsonl",
+                            mimetype="application/jsonl",
+                        )
+
+                    print(f"File not present at the location: {output_jsonl_path}")
                 except Exception as e:
                     return jsonify(status="error", message=f"Error converting CSV to JSONL: {e}"), 500
             else:
@@ -314,13 +378,13 @@ def jsonl_to_sqlite():
     """
     # Check if the post request has the file part
     if 'file' not in request.files:
-        return jsonify(status="error", message=f"No File uploaded"), 400
+        return jsonify(status="error", message="No File uploaded"), 400
 
     file = request.files['file']
     # If the user does not select a file, the browser submits an
     # empty file without a filename.
     if file.filename == '':
-        return jsonify(status="error", message=f"No selected file."), 400
+        return jsonify(status="error", message="No selected file."), 400
 
     if file:
         try:
@@ -329,9 +393,9 @@ def jsonl_to_sqlite():
                 backup_db(DB_PATH)
                 import_jsonl_to_sqlite(jsonl_path, "qa_data.db")
                 return jsonify(status="success",
-                               message=f"File successfully uploaded and data imported to SQLite."), 200
+                               message="File successfully uploaded and data imported to SQLite."), 200
             else:
-                return jsonify(status="error", message=f"Invalid JSONL file."), 400
+                return jsonify(status="error", message="Invalid JSONL file."), 400
         except Exception as e:
             return jsonify(status="error", message=f"Error importing JSONL to SQLite: JSONL format error - {e}"), 500
 
@@ -363,7 +427,19 @@ def duplicate_checker():
     This function is used to check the duplicates in the questions or answers from the database
     :return: response
     """
+    if not has_training_data():
+        return no_training_data_response("duplicate checks")
+
     is_question = request.args.get('isQuestion', default="true").lower() == "true"
+    try:
+        from .data_tools.duplicate_checker import duplicate_checker_vectors
+    except ImportError:
+        app.logger.exception("Duplicate checker dependencies are not installed.")
+        return jsonify(
+            status="error",
+            message="Duplicate checking dependencies are not installed.",
+        ), 503
+
     count, dupl_list_file_path = duplicate_checker_vectors(is_question)
     # TODO - Implement the duplicate items view in the UI.
     return jsonify(status="success",
@@ -377,11 +453,13 @@ def clean_items_api():
     This function is used to clean the questions or answers in the database
     :return: response
     """
+    if not has_training_data():
+        return no_training_data_response("bulk text removal")
+
     # First backup the database
     backup_db(DB_PATH)
     is_question = request.args.get('isQuestion', default="true").lower() == "true"
     wrong_string = request.json.get('wrong_string')
-    is_question_str = request.json.get('isQuestion')
     items, count = clean_items(wrong_string, is_question)
     # Convert items to a format that can be JSON serialized
     items_json = [item.to_dict() for item in items]  # Assuming each item has a to_dict() method
@@ -411,17 +489,17 @@ def restore_database():
     """
     # Check if the post request has the file part
     if 'file' not in request.files:
-        return jsonify(status="error", message=f"No file part in the request."), 400
+        return jsonify(status="error", message="No file part in the request."), 400
 
     file = request.files['file']
     # If the user does not select a file, the browser submits an
     # empty file without a filename.
     if file.filename == '':
-        return jsonify(status="error", message=f"No selected file."), 400
+        return jsonify(status="error", message="No selected file."), 400
 
     if file:
         try:
-            backup_file_path = save_file(file, app.config['UPLOAD_FOLDER'])
+            save_file(file, app.config['UPLOAD_FOLDER'])
             # Now replace the current DB with the backup
             restored_db_path = backup_db(DB_PATH)
             return send_file(restored_db_path, as_attachment=True)
@@ -435,7 +513,8 @@ def qa_generator():
     This function is used to generate the question and answer
     :return: response
     """
-    return render_template("qa_generator.html")
+    count = training_data_count()
+    return render_template("qa_generator.html", has_data=count > 0, count=count)
 
 
 @app.route('/api/openai/qa_generator', methods=['POST'])
@@ -445,13 +524,41 @@ def openai_qa_generator():
     The API calls the call_openai_sdk function from ai_api.py
     :return: response
     """
+    if not has_training_data():
+        return no_training_data_response("AI FAQ generation")
+
     data = request.json['input_text']
-    result = call_openai_sdk(data)
-    return jsonify(status="success", message=f"Question and Answer generated successfully.", result=result), 200
+    try:
+        from .ai_api import call_openai_sdk
+    except ImportError:
+        app.logger.exception("AI generation dependencies are not installed.")
+        return jsonify(
+            status="error",
+            message="AI generation dependencies are not installed.",
+        ), 503
+
+    try:
+        result = call_openai_sdk(data)
+    except Exception:
+        app.logger.exception("AI generation failed")
+        return jsonify(
+            status="error",
+            message="AI generation failed due to an internal error.",
+        ), 502
+
+    return jsonify(status="success", message="Question and Answer generated successfully.", result=result), 200
 
 
 if __name__ == "__main__":
     create_app()
-    with app.app_context():
-        db.create_all()  # This will create the database using the defined models
-    app.run(debug=True)
+    try:
+        with app.app_context():
+            db.create_all()  # This will create the database using the defined models
+    except Exception as e:
+        print(f"Error creating database tables: {e}")
+
+    app.run(
+        host=os.environ.get("FLASK_RUN_HOST", "127.0.0.1"),
+        port=int(os.environ.get("FLASK_RUN_PORT", "5000")),
+        debug=os.environ.get("FLASK_DEBUG", "1") == "1",
+    )

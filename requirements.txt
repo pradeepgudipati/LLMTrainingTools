@@ -1,25 +1,6 @@
-Werkzeug~=3.0.2
-blinker==1.7.0
-click==8.1.7
-colorama==0.4.6
-Flask==3.0.3
-Flask-SQLAlchemy==3.1.1
-greenlet==3.0.3
-itsdangerous==2.2.0
-Jinja2==3.1.6
-MarkupSafe==2.1.5
-SQLAlchemy==2.0.29
-typing_extensions==4.11.0
-Werkzeug==3.1.5
-scikit-learn==1.5.0
-pymilvus
-torch==2.8.0
-transformers===4.53.0
-pydotenv~=3.1.0
-pinecone-client==3.2.2
-annoy==1.17.3
-nltk==3.9.1
-numpy==1.26.4
-openai==1.23.2
-pandas~=2.2.2 
-tqdm==4.66.4
+# This project uses uv for dependency management.
+#
+# Install dependencies with:
+#   uv sync
+#
+# Dependencies are declared in pyproject.toml and locked in uv.lock.

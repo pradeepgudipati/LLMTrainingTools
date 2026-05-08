@@ -12,8 +12,8 @@ LLMTrainingTools provides a suite of utilities designed to facilitate the creati
 
 
 ## Getting Started
- - Python 3.6 or above
- - Pip
+ - Python 3.10 to 3.13
+ - uv
  - An IDE (PyCharm preferred) VSCode also ok 
     
 ### Dependencies 
@@ -24,27 +24,25 @@ LLMTrainingTools provides a suite of utilities designed to facilitate the creati
 
 ## Installation
 
-Clone the repository and install the required Python packages:
+Clone the repository and install the required Python packages with uv:
 
 ***For Windows***
 ```bash 
 git clone https://github.com/pradeepgudipati/LLMTrainingTools.git
 cd LLMTrainingTools
-python -m venv llmtraining
-./llmtraining/Scripts/activate
-pip install -r requirements.txt
+uv sync
 ```
-***For Other platforms please adjust above commands***
+***For other platforms use the same `uv sync` command from the project root.***
 
 
 # Usage
 
 To run the web application for editing the training data
 ```bash
-> python app.py
+uv run python src/app.py
 
 ----------------------------------------------------------------
-(llmtraining) PS D:\Dev\Workspace\LLMTrainingTools> python .\app.py                           
+(llmtraining) PS D:\Dev\Workspace\LLMTrainingTools> uv run python .\src\app.py
 BASE_DIR: D:\Dev\Workspace\LLMTrainingTools
 DB_PATH: D:\Dev\Workspace\LLMTrainingTools\jsonl_data_to_db/data/qa_data.db
  * Serving Flask app 'app'
@@ -88,7 +86,7 @@ sqlite_db_path = "data/merged_data.db"
 2. Now run the following command in the terminal to execute the code
 
 ```bash
-python db_to_jsonl.py
+uv run python src/data_tools/import_utils/db_to_jsonl.py
 ```
 ###  2. Convert the JSONL file to DB
 
@@ -100,7 +98,7 @@ sqlite_db_path = "data/qa_data.db"
 ```
 2. Run the following command in the terminal to execute the code
 ```bash 
-python jsonl_to_sqllite.py
+uv run python src/data_tools/import_utils/jsonl_to_sqllite.py
 ```
 
 ### 3. Convert the CSV file to JSONL
@@ -123,7 +121,7 @@ convert_single_csv_to_jsonl(csv_file_path, output_jsonl_file)
 
 2. Execute the code 
 ```bash 
-python csv_to_jsonl.py
+uv run python src/data_tools/import_utils/csv_to_jsonl.py
 ```
 
 # More Details 
@@ -177,7 +175,7 @@ The format of the jsonl is as follows
 ## Running the application 
 Start the Flask server by running the below command in the terminal
 ```bash
- python app.py
+uv run python src/app.py
 ```
 Access the Web UI by opening the below URL in your favorite browser
 http://localhost:5000

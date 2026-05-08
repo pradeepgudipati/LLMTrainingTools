@@ -15,7 +15,9 @@
                     FAQ's</label>
                 <textarea id="text-qa-source"
                           placeholder="Enter the source from which FAQ QA's will be generated"
-                          class="mb-3 px-2 py-1 border rounded w-full" rows="4"></textarea>
+                          class="mb-3 px-2 py-1 border rounded w-full"
+                          rows="4"
+                          {% if not has_data %}disabled{% endif %}></textarea>
             </div>
 
             <div class="items-center px-4 py-3">
@@ -23,7 +25,10 @@
                         class="px-4 py-1 text-white bg-gray-500 rounded hover:bg-gray-600 mr-2">
                     Cancel
                 </button>
-                <button id="generate-qa-btn" class="px-4 py-1 text-white bg-blue-500 rounded hover:bg-blue-600">
+                <button id="generate-qa-btn"
+                        data-has-data="{{ 'true' if has_data else 'false' }}"
+                        {% if not has_data %}disabled{% endif %}
+                        class="px-4 py-1 text-white rounded {% if has_data %}bg-blue-500 hover:bg-blue-600{% else %}bg-gray-400 cursor-not-allowed{% endif %}">
                     Generate FAQ with AI
                 </button>
 
@@ -43,7 +48,7 @@
                 </div>
             </div>
         </div>
-        <div id="result" class="mt-3"></div>
+        <div id="result" class="mt-3">{% if not has_data %}Add or import training data before using AI generation.{% endif %}</div>
     </div>
 </div>
 <script src="{{ url_for('static', filename='js/qa_generator.js') }}">
