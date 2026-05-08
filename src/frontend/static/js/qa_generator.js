@@ -1,4 +1,9 @@
 function generateQA() {
+    const generateButton = document.getElementById('generate-qa-btn');
+    if (generateButton.dataset.hasData !== 'true') {
+        document.getElementById('result').textContent = 'Add or import training data before using AI generation.';
+        return;
+    }
     // Get the input text
     const inputText = document.getElementById('text-qa-source').value;
     console.log(inputText);
@@ -19,7 +24,7 @@ function generateQA() {
             console.log(data);
             document.getElementById('loading-spinner').classList.add('hidden');
             // Display the result
-            document.getElementById('result').textContent = data.result;
+            document.getElementById('result').textContent = data.result || data.message;
             // Update the QA pairs
             // document.getElementById('question').innerText = data['question'];
             // document.getElementById('answer').innerText = data['answer'];

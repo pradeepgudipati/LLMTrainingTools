@@ -364,6 +364,10 @@ function resetUploadFilePopup() {
 
 // Find Duplicates
 function findDuplicates() {
+    if (document.getElementById('duplicate-check-link').getAttribute('aria-disabled') === 'true') {
+        showToast("Add or import training data before running duplicate checks.", true);
+        return;
+    }
     showToast("Finding duplicates - Please wait...")
     // Send a request to a new server-side route that will return only the duplicate rows
     fetch('/api/duplicate_checker', {
@@ -376,7 +380,7 @@ function findDuplicates() {
         .then(data => {
             // TODO: The server should return the HTML for the new table, which can replace the old table
             console.log('Duplicate checker response:', data);
-            showToast("Task Completed - " + data.message, false); // Handle success or error message
+            showToast("Task Completed - " + data.message, data.status === "error"); // Handle success or error message
             // showToast("Duplicate File generated successfully")
         })
         .catch((error) => {
@@ -385,6 +389,10 @@ function findDuplicates() {
 }
 
 function showCleanTextPopup() {
+    if (document.getElementById('bulk-remove-text-link').getAttribute('aria-disabled') === 'true') {
+        showToast("Add or import training data before running bulk text removal.", true);
+        return;
+    }
     //Shows the popup
     document.getElementById('bulk-remove-text-popup').classList.remove('hidden');
     //Resets all the fields to initial state

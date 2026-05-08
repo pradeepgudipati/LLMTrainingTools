@@ -1,19 +1,17 @@
 import os
 import time
 
-from flask import Flask, render_template, request, jsonify, session, app, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask import send_file
 
-from data_tools.clean_data_in_db import clean_items
-from data_tools.database_utils import backup_db
-from data_tools.db_init import db
-from data_tools.duplicate_checker import duplicate_checker_vectors
-from data_tools.import_utils.csv_to_jsonl import convert_single_csv_to_jsonl
-from data_tools.import_utils.db_to_jsonl import sqlite_to_jsonl
-from data_tools.import_utils.jsonl_to_sqllite import import_jsonl_to_sqlite, test_jsonl_to_sqlite
-from models.llm_training_data_model import LLMDataModel
-from src.ai_api import call_openai_sdk
-from utils import validate_jsonl_file, validate_csv_file, save_file
+from .data_tools.clean_data_in_db import clean_items
+from .data_tools.database_utils import backup_db
+from .data_tools.db_init import db
+from .data_tools.import_utils.csv_to_jsonl import convert_single_csv_to_jsonl
+from .data_tools.import_utils.db_to_jsonl import sqlite_to_jsonl
+from .data_tools.import_utils.jsonl_to_sqllite import import_jsonl_to_sqlite, test_jsonl_to_sqlite
+from .models.llm_training_data_model import LLMDataModel
+from .utils import validate_jsonl_file, validate_csv_file, save_file
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "data/qa_data.db")
@@ -32,13 +30,26 @@ def create_app():
 
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + DB_PATH
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config['UPLOAD_FOLDER_JSONL'] = 'user_uploads/jsonl/'
-    app.config['UPLOAD_FOLDER_CSV'] = 'user_uploads/csv/'
+
+    # Set upload folders with absolute paths
+    upload_base = os.path.join(BASE_DIR, 'user_uploads')
+    app.config['UPLOAD_FOLDER'] = os.path.join(upload_base, 'uploads/')
+    app.config['UPLOAD_FOLDER_JSONL'] = os.path.join(upload_base, 'jsonl/')
+    app.config['UPLOAD_FOLDER_CSV'] = os.path.join(upload_base, 'csv/')
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB
+
+    # Create upload directories if they don't exist
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(app.config['UPLOAD_FOLDER_JSONL'], exist_ok=True)
+    os.makedirs(app.config['UPLOAD_FOLDER_CSV'], exist_ok=True)
+    os.makedirs(os.path.join(app.config['UPLOAD_FOLDER_JSONL'], 'downloads'), exist_ok=True)
+
     try:
         db.init_app(app)
     except Exception as e:
         print(f"DB initializing Exception: {e}")
+
+    return app
 
 
 # API for getting the question and answer from the database
@@ -50,18 +61,23 @@ def index(page=None):
     :param page: Page number
     :return:
     """
-    # Initialize the search queries with values from session
-    data, count, per_page, page, total_pages, query_qa, query_ans = get_data()
-    return render_template(
-        "table_view.html",
-        data=data,
-        count=count,
-        total_pages=total_pages,
-        page=page,
-        per_page=per_page,
-        query_qa=query_qa,
-        query_ans=query_ans,
-    )
+    try:
+        # Initialize the search queries with values from session
+        data, count, per_page, page, total_pages, query_qa, query_ans = get_data()
+        return render_template(
+            "table_view.html",
+            data=data,
+            count=count,
+            total_pages=total_pages,
+            page=page,
+            per_page=per_page,
+            query_qa=query_qa,
+            query_ans=query_ans,
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return f"Error loading page: {str(e)}", 500
 
 
 @app.route("/api/data", methods=["GET"])
@@ -126,6 +142,21 @@ def get_data():
     print(f"Total Items: {count}, Total Pages: {total_pages}, Page: {page}, Per Page: {per_page}")
     print(f"Query QA: {query_qa}, Query Ans: {query_ans}")
     return items, count, per_page, page, total_pages, query_qa, query_ans
+
+
+def has_training_data():
+    return training_data_count() > 0
+
+
+def training_data_count():
+    return LLMDataModel.query.count()
+
+
+def no_training_data_response(action):
+    return jsonify(
+        status="error",
+        message=f"Add or import training data before running {action}.",
+    ), 409
 
 
 # API for getting the question and answer from the database
@@ -363,7 +394,18 @@ def duplicate_checker():
     This function is used to check the duplicates in the questions or answers from the database
     :return: response
     """
+    if not has_training_data():
+        return no_training_data_response("duplicate checks")
+
     is_question = request.args.get('isQuestion', default="true").lower() == "true"
+    try:
+        from .data_tools.duplicate_checker import duplicate_checker_vectors
+    except ImportError as exc:
+        return jsonify(
+            status="error",
+            message=f"Duplicate checking dependencies are not installed: {exc}",
+        ), 503
+
     count, dupl_list_file_path = duplicate_checker_vectors(is_question)
     # TODO - Implement the duplicate items view in the UI.
     return jsonify(status="success",
@@ -377,6 +419,9 @@ def clean_items_api():
     This function is used to clean the questions or answers in the database
     :return: response
     """
+    if not has_training_data():
+        return no_training_data_response("bulk text removal")
+
     # First backup the database
     backup_db(DB_PATH)
     is_question = request.args.get('isQuestion', default="true").lower() == "true"
@@ -435,7 +480,8 @@ def qa_generator():
     This function is used to generate the question and answer
     :return: response
     """
-    return render_template("qa_generator.html")
+    count = training_data_count()
+    return render_template("qa_generator.html", has_data=count > 0, count=count)
 
 
 @app.route('/api/openai/qa_generator', methods=['POST'])
@@ -445,13 +491,39 @@ def openai_qa_generator():
     The API calls the call_openai_sdk function from ai_api.py
     :return: response
     """
+    if not has_training_data():
+        return no_training_data_response("AI FAQ generation")
+
     data = request.json['input_text']
-    result = call_openai_sdk(data)
+    try:
+        from .ai_api import call_openai_sdk
+    except ImportError as exc:
+        return jsonify(
+            status="error",
+            message=f"AI generation dependencies are not installed: {exc}",
+        ), 503
+
+    try:
+        result = call_openai_sdk(data)
+    except Exception as exc:
+        return jsonify(
+            status="error",
+            message=f"AI generation failed: {exc}",
+        ), 502
+
     return jsonify(status="success", message=f"Question and Answer generated successfully.", result=result), 200
 
 
 if __name__ == "__main__":
     create_app()
-    with app.app_context():
-        db.create_all()  # This will create the database using the defined models
-    app.run(debug=True)
+    try:
+        with app.app_context():
+            db.create_all()  # This will create the database using the defined models
+    except Exception as e:
+        print(f"Error creating database tables: {e}")
+
+    app.run(
+        host=os.environ.get("FLASK_RUN_HOST", "127.0.0.1"),
+        port=int(os.environ.get("FLASK_RUN_PORT", "5000")),
+        debug=os.environ.get("FLASK_DEBUG", "1") == "1",
+    )

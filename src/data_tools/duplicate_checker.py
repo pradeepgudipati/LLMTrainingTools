@@ -1,11 +1,12 @@
 import datetime
+import os
 import string
 
 import nltk
 import pandas as pd
 from annoy import AnnoyIndex
-from data_tools.database_utils import get_all_items
-from models.llm_training_data_model import LLMDataModel
+from .database_utils import get_all_items
+from ..models.llm_training_data_model import LLMDataModel
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -49,8 +50,17 @@ def vectorize_items(items):
 def duplicate_checker_vectors(is_question):
     # Get all items from the database
     db_items = get_all_items(LLMDataModel)
+    file_name = 'duplicates' + datetime.datetime.now().strftime("%d_%b_%y_t%H_%M") + '.csv'
+    columns = ['id 1', 'Question 1', 'Answer 1', 'Id 2', 'Question 2 ', 'Answer 2', 'Similarity Score']
+    if len(db_items) < 2:
+        pd.DataFrame([], columns=columns).to_csv(file_name, index=False)
+        return 0, os.path.abspath(file_name)
+
     # Preprocess the text
     items_text = preprocess_text_items(db_items, is_question)
+    if not any(text.strip() for text in items_text):
+        pd.DataFrame([], columns=columns).to_csv(file_name, index=False)
+        return 0, os.path.abspath(file_name)
 
     # Convert your strings into vectors
     vectors = vectorize_items(items_text)
@@ -74,18 +84,15 @@ def duplicate_checker_vectors(is_question):
     for i in tqdm(range(vectors.shape[0]), desc="Checking for duplicates"):
         v = vectors[i].toarray()[0]
         nearest = u.get_nns_by_vector(v, 2)  # find the 2 nearest neighbors
-        if nearest[0] == i:  # if the nearest neighbor is itself
+        if len(nearest) > 1 and nearest[0] == i:  # if the nearest neighbor is itself
             similarity = cosine_similarity(vectors[i].reshape(1, -1), vectors[nearest[1]].reshape(1, -1))
             if similarity[0][0] > 0.97:  # Adjust this threshold as needed
                 duplicates.append((db_items[i].id, db_items[i].question, db_items[i].answer, db_items[nearest[1]].id,
                                    db_items[nearest[1]].question, db_items[nearest[1]].answer, similarity[0][0]))
     print("Duplicates are -- ", len(duplicates))
     # Create a DataFrame from the duplicates list
-    df = pd.DataFrame(duplicates,
-                      columns=['id 1', 'Question 1', 'Answer 1', 'Id 2', 'Question 2 ', 'Answer 2', 'Similarity Score'],
-                      )
+    df = pd.DataFrame(duplicates, columns=columns)
 
-    file_name = 'duplicates' + datetime.datetime.now().strftime("%d_%b_%y_t%H_%M") + '.csv'
     # Export the DataFrame to a CSV file
     df.to_csv(file_name, index=False)
-    return len(duplicates), file_name
+    return len(duplicates), os.path.abspath(file_name)
