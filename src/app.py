@@ -74,7 +74,7 @@ def index(page=None):
             query_qa=query_qa,
             query_ans=query_ans,
         )
-    except Exception as e:
+    except Exception:
         import traceback
         traceback.print_exc()
         return "An internal error has occurred.", 500
@@ -406,7 +406,7 @@ def duplicate_checker():
     is_question = request.args.get('isQuestion', default="true").lower() == "true"
     try:
         from .data_tools.duplicate_checker import duplicate_checker_vectors
-    except ImportError as exc:
+    except ImportError:
         app.logger.exception("Duplicate checker dependencies are not installed.")
         return jsonify(
             status="error",
@@ -502,16 +502,17 @@ def openai_qa_generator():
 
     data = request.json['input_text']
     try:
+        from .ai_api import call_openai_sdk
     except ImportError:
-    except ImportError as exc:
+        app.logger.exception("AI generation dependencies are not installed.")
         return jsonify(
+            status="error",
             message="AI generation dependencies are not installed.",
-            message=f"AI generation dependencies are not installed: {exc}",
         ), 503
 
     try:
         result = call_openai_sdk(data)
-    except Exception as exc:
+    except Exception:
         app.logger.exception("AI generation failed")
         return jsonify(
             status="error",
