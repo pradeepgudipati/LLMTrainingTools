@@ -32,5 +32,37 @@ dependencies = [
     "werkzeug==3.1.5",
 ]
 
+[dependency-groups]
+dev = [
+    "pylint",
+]
+
 [tool.uv]
 package = false
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.pylint.messages_control]
+disable = [
+    "broad-exception-caught",
+    "consider-using-max-builtin",
+    "consider-using-min-builtin",
+    "fixme",
+    "f-string-without-interpolation",
+    "global-variable-not-assigned",
+    "import-error",
+    "import-outside-toplevel",
+    "inconsistent-return-statements",
+    "invalid-name",
+    "line-too-long",
+    "logging-fstring-interpolation",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "missing-module-docstring",
+    "no-else-return",
+    "too-many-locals",
+    "unspecified-encoding",
+    "unused-variable",
+    "wrong-import-order",
+]

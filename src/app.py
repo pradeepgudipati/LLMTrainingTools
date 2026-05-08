@@ -282,7 +282,10 @@ def jsonl_to_db():
             import_jsonl_to_sqlite(jsonl_path, DB_PATH)
             test_jsonl_to_sqlite(jsonl_path, DB_PATH)
             backup_db(DB_PATH)
-            jsonify(status="success", message=f"File successfully uploaded and data imported to SQLite."), 200
+            return jsonify(
+                status="success",
+                message="File successfully uploaded and data imported to SQLite.",
+            ), 200
         except Exception as e:
             return jsonify(status="error", message=f"Error converting JSONL to SQLite: {e}"), 500
     #     Now refresh the page
@@ -322,11 +325,14 @@ def csv_to_jsonl():
                     # Send the JSONL file to the client
                     time.sleep(3)
                     if os.path.exists(output_jsonl_path) and os.access(output_jsonl_path, os.R_OK):
-                        file = open(output_jsonl_path, 'rb')
-                        return send_file(file, as_attachment=True, download_name="training_data.jsonl",
-                                         mimetype="application/jsonl")
-                    else:
-                        print(f"File not present at the location: {output_jsonl_path}")
+                        return send_file(
+                            output_jsonl_path,
+                            as_attachment=True,
+                            download_name="training_data.jsonl",
+                            mimetype="application/jsonl",
+                        )
+
+                    print(f"File not present at the location: {output_jsonl_path}")
                 except Exception as e:
                     return jsonify(status="error", message=f"Error converting CSV to JSONL: {e}"), 500
             else:
