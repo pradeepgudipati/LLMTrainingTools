@@ -502,10 +502,10 @@ def openai_qa_generator():
 
     data = request.json['input_text']
     try:
-        from .ai_api import call_openai_sdk
+    except ImportError:
     except ImportError as exc:
         return jsonify(
-            status="error",
+            message="AI generation dependencies are not installed.",
             message=f"AI generation dependencies are not installed: {exc}",
         ), 503
 
