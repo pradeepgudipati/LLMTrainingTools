@@ -209,7 +209,7 @@ def add_new_qa():
     new_item = LLMDataModel(question=data["question"], answer=data["answer"])
     db.session.add(new_item)
     db.session.commit()
-    return jsonify(status="success", message=f"New item added."), 200
+    return jsonify(status="success", message="New item added."), 200
 
 
 # API for deleting the question from the database
@@ -303,13 +303,13 @@ def csv_to_jsonl():
     print("Request data ::", request.files)
     # Check if the post request has the file part
     if 'file' not in request.files:
-        return jsonify(status="error", message=f"No File uploaded"), 400
+        return jsonify(status="error", message="No File uploaded"), 400
 
     file = request.files['file']
     # If the user does not select a file, the browser submits an
     # empty file without a filename.
     if file.filename == '':
-        return jsonify(status="error", message=f"No selected file."), 400
+        return jsonify(status="error", message="No selected file."), 400
 
     if file:
         csv_file_path = os.path.join(app.config['UPLOAD_FOLDER_CSV'], file.filename)
@@ -351,13 +351,13 @@ def jsonl_to_sqlite():
     """
     # Check if the post request has the file part
     if 'file' not in request.files:
-        return jsonify(status="error", message=f"No File uploaded"), 400
+        return jsonify(status="error", message="No File uploaded"), 400
 
     file = request.files['file']
     # If the user does not select a file, the browser submits an
     # empty file without a filename.
     if file.filename == '':
-        return jsonify(status="error", message=f"No selected file."), 400
+        return jsonify(status="error", message="No selected file."), 400
 
     if file:
         try:
@@ -366,9 +366,9 @@ def jsonl_to_sqlite():
                 backup_db(DB_PATH)
                 import_jsonl_to_sqlite(jsonl_path, "qa_data.db")
                 return jsonify(status="success",
-                               message=f"File successfully uploaded and data imported to SQLite."), 200
+                               message="File successfully uploaded and data imported to SQLite."), 200
             else:
-                return jsonify(status="error", message=f"Invalid JSONL file."), 400
+                return jsonify(status="error", message="Invalid JSONL file."), 400
         except Exception as e:
             return jsonify(status="error", message=f"Error importing JSONL to SQLite: JSONL format error - {e}"), 500
 
@@ -432,7 +432,6 @@ def clean_items_api():
     backup_db(DB_PATH)
     is_question = request.args.get('isQuestion', default="true").lower() == "true"
     wrong_string = request.json.get('wrong_string')
-    is_question_str = request.json.get('isQuestion')
     items, count = clean_items(wrong_string, is_question)
     # Convert items to a format that can be JSON serialized
     items_json = [item.to_dict() for item in items]  # Assuming each item has a to_dict() method
@@ -462,17 +461,17 @@ def restore_database():
     """
     # Check if the post request has the file part
     if 'file' not in request.files:
-        return jsonify(status="error", message=f"No file part in the request."), 400
+        return jsonify(status="error", message="No file part in the request."), 400
 
     file = request.files['file']
     # If the user does not select a file, the browser submits an
     # empty file without a filename.
     if file.filename == '':
-        return jsonify(status="error", message=f"No selected file."), 400
+        return jsonify(status="error", message="No selected file."), 400
 
     if file:
         try:
-            backup_file_path = save_file(file, app.config['UPLOAD_FOLDER'])
+            save_file(file, app.config['UPLOAD_FOLDER'])
             # Now replace the current DB with the backup
             restored_db_path = backup_db(DB_PATH)
             return send_file(restored_db_path, as_attachment=True)
@@ -517,7 +516,7 @@ def openai_qa_generator():
             message=f"AI generation failed: {exc}",
         ), 502
 
-    return jsonify(status="success", message=f"Question and Answer generated successfully.", result=result), 200
+    return jsonify(status="success", message="Question and Answer generated successfully.", result=result), 200
 
 
 if __name__ == "__main__":

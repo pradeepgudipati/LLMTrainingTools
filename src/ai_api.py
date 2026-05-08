@@ -23,7 +23,6 @@ def call_openai_sdk(text):
     llm_ai_host = os.environ.get("LLM_HOST")
     llm_ai_port = os.environ.get("LLM_PORT")
     llm_ai_model_llama2 = os.environ.get("LLM_MODEL_LLAMA2")
-    llm_ai_model_llama3 = os.environ.get("LLM_MODEL_LLAMA3")
 
     client = openai.Client(api_key="fake-api-key",
                            base_url=f"{llm_ai_host}:{llm_ai_port}/v1")

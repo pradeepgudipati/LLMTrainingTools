@@ -35,6 +35,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pylint",
+    "ruff",
 ]
 
 [tool.uv]
