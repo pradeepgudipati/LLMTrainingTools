@@ -1,5 +1,7 @@
 import os
+import shutil
 import time
+import uuid
 
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask import send_file
@@ -159,6 +161,21 @@ def no_training_data_response(action):
     ), 409
 
 
+def save_uploaded_jsonl(file, upload_folder):
+    filename = f"{uuid.uuid4().hex}.jsonl"
+    upload_dir = os.path.realpath(upload_folder)
+    file_path = os.path.realpath(os.path.join(upload_dir, filename))
+
+    if not file_path.startswith(upload_dir + os.sep):
+        raise ValueError("Invalid upload path.")
+
+    os.makedirs(upload_dir, exist_ok=True)
+    with open(file_path, "wb") as output_file:
+        shutil.copyfileobj(file.stream, output_file)
+
+    return file_path
+
+
 # API for getting the question and answer from the database
 @app.route("/api/save/<int:item_id>", methods=["POST"])
 def save_content(item_id):
@@ -272,10 +289,12 @@ def jsonl_to_db():
     # empty file without a filename.
     if file.filename == '':
         return jsonify(status="error", message="No selected file."), 400
+    if not file.filename.lower().endswith(".jsonl"):
+        return jsonify(status="error", message="Only JSONL files are supported."), 400
 
     if file:
         upload_folder = app.config['UPLOAD_FOLDER']
-        jsonl_path = save_file(file, upload_folder)
+        jsonl_path = save_uploaded_jsonl(file, upload_folder)
 
         try:
             backup_db(DB_PATH)
@@ -286,8 +305,9 @@ def jsonl_to_db():
                 status="success",
                 message="File successfully uploaded and data imported to SQLite.",
             ), 200
-        except Exception as e:
-            return jsonify(status="error", message=f"Error converting JSONL to SQLite: {e}"), 500
+        except Exception:
+            app.logger.exception("Error converting JSONL to SQLite")
+            return jsonify(status="error", message="Error converting JSONL to SQLite."), 500
     #     Now refresh the page
     return redirect(url_for('index'))
 
