@@ -77,7 +77,7 @@ def index(page=None):
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return f"Error loading page: {str(e)}", 500
+        return "An internal error has occurred.", 500
 
 
 @app.route("/api/data", methods=["GET"])
