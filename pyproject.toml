@@ -63,6 +63,7 @@ disable = [
     "missing-module-docstring",
     "no-else-return",
     "too-many-locals",
+    "too-many-return-statements",
     "unspecified-encoding",
     "unused-variable",
     "wrong-import-order",

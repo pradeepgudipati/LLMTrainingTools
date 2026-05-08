@@ -161,8 +161,8 @@ def no_training_data_response(action):
     ), 409
 
 
-def save_uploaded_jsonl(file, upload_folder):
-    filename = f"{uuid.uuid4().hex}.jsonl"
+def save_uploaded_file(file, upload_folder, extension):
+    filename = f"{uuid.uuid4().hex}{extension}"
     upload_dir = os.path.realpath(upload_folder)
     file_path = os.path.realpath(os.path.join(upload_dir, filename))
 
@@ -174,6 +174,14 @@ def save_uploaded_jsonl(file, upload_folder):
         shutil.copyfileobj(file.stream, output_file)
 
     return file_path
+
+
+def save_uploaded_jsonl(file, upload_folder):
+    return save_uploaded_file(file, upload_folder, ".jsonl")
+
+
+def save_uploaded_csv(file, upload_folder):
+    return save_uploaded_file(file, upload_folder, ".csv")
 
 
 # API for getting the question and answer from the database
@@ -330,12 +338,11 @@ def csv_to_jsonl():
     # empty file without a filename.
     if file.filename == '':
         return jsonify(status="error", message="No selected file."), 400
+    if not file.filename.lower().endswith(".csv"):
+        return jsonify(status="error", message="Only CSV files are supported."), 400
 
     if file:
-        csv_file_path = os.path.join(app.config['UPLOAD_FOLDER_CSV'], file.filename)
-        if os.path.exists(csv_file_path):
-            os.remove(csv_file_path)
-        csv_path = save_file(file, app.config['UPLOAD_FOLDER_CSV'])
+        csv_path = save_uploaded_csv(file, app.config['UPLOAD_FOLDER_CSV'])
         output_jsonl_path = os.path.join(app.config['UPLOAD_FOLDER_JSONL'], "downloads/training_data.jsonl")
         print(f"CSV Path: {csv_path}, Output JSONL Path: {output_jsonl_path}")
         try:
