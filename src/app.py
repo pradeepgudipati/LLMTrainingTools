@@ -512,9 +512,10 @@ def openai_qa_generator():
     try:
         result = call_openai_sdk(data)
     except Exception as exc:
+        app.logger.exception("AI generation failed")
         return jsonify(
             status="error",
-            message=f"AI generation failed: {exc}",
+            message="AI generation failed due to an internal error.",
         ), 502
 
     return jsonify(status="success", message="Question and Answer generated successfully.", result=result), 200
