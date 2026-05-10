@@ -3,20 +3,24 @@ import shutil
 import time
 import uuid
 
+from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask import send_file
 
 from .data_tools.clean_data_in_db import clean_items
-from .data_tools.database_utils import backup_db
+from .data_tools.database_utils import backup_db, restore_db
+from .data_tools.dataset_validation import validate_csv_file, validate_jsonl_file
 from .data_tools.db_init import db
 from .data_tools.import_utils.csv_to_jsonl import convert_single_csv_to_jsonl
 from .data_tools.import_utils.db_to_jsonl import sqlite_to_jsonl
 from .data_tools.import_utils.jsonl_to_sqllite import import_jsonl_to_sqlite, test_jsonl_to_sqlite
 from .models.llm_training_data_model import LLMDataModel
-from .utils import validate_jsonl_file, validate_csv_file, save_file
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-DB_PATH = os.path.join(BASE_DIR, "data/qa_data.db")
+PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, os.pardir))
+load_dotenv(os.path.join(PROJECT_ROOT, ".env.local"))
+load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
+DB_PATH = os.environ.get("LLMTOOLS_DB_PATH", os.path.join(BASE_DIR, "data/qa_data.db"))
 
 # noinspection PyRedeclaration
 app = Flask(__name__, template_folder="frontend/templates", static_folder="frontend/static")
@@ -28,7 +32,7 @@ def create_app():
     This function is used to create the app with the database and default configurations
     :return: app
     """
-    app.config["SECRET_KEY"] = "NFi2d0K45FYcX1ZXAXJ6NM"  # Change this to a random secret key
+    app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", "dev-only-change-me")
 
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + DB_PATH
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -388,10 +392,10 @@ def jsonl_to_sqlite():
 
     if file:
         try:
-            jsonl_path = save_file(file, app.config['UPLOAD_FOLDER_JSONL'])
+            jsonl_path = save_uploaded_jsonl(file, app.config['UPLOAD_FOLDER_JSONL'])
             if validate_jsonl_file(jsonl_path):
                 backup_db(DB_PATH)
-                import_jsonl_to_sqlite(jsonl_path, "qa_data.db")
+                import_jsonl_to_sqlite(jsonl_path, DB_PATH)
                 return jsonify(status="success",
                                message="File successfully uploaded and data imported to SQLite."), 200
             else:
@@ -408,7 +412,7 @@ def export_jsonl():
     :return: response
     """
     # Define the path to the SQLite database and the path where you want to save the JSONL file
-    sql_file_path = os.path.join(BASE_DIR, "data/qa_data.db")
+    sql_file_path = DB_PATH
     jsonl_path = os.path.join(BASE_DIR, "data/qa_data.jsonl")
     table_name = "messages"  # Replace with your table name
 
@@ -499,9 +503,8 @@ def restore_database():
 
     if file:
         try:
-            save_file(file, app.config['UPLOAD_FOLDER'])
-            # Now replace the current DB with the backup
-            restored_db_path = backup_db(DB_PATH)
+            backup_file = save_uploaded_file(file, app.config['UPLOAD_FOLDER'], ".db")
+            restored_db_path = restore_db(DB_PATH, backup_file)
             return send_file(restored_db_path, as_attachment=True)
         except Exception as e:
             return jsonify(status="error", message=f"Error restoring database: {e}"), 500
@@ -550,15 +553,6 @@ def openai_qa_generator():
 
 
 if __name__ == "__main__":
-    create_app()
-    try:
-        with app.app_context():
-            db.create_all()  # This will create the database using the defined models
-    except Exception as e:
-        print(f"Error creating database tables: {e}")
+    from .cli import serve
 
-    app.run(
-        host=os.environ.get("FLASK_RUN_HOST", "127.0.0.1"),
-        port=int(os.environ.get("FLASK_RUN_PORT", "5000")),
-        debug=os.environ.get("FLASK_DEBUG", "1") == "1",
-    )
+    serve()

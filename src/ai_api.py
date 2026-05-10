@@ -10,6 +10,7 @@ prompt = (
     "to be understood independently. Return only the CSV: ")
 
 load_dotenv('.env.local')
+load_dotenv('.env')
 
 
 def call_openai_sdk(text):

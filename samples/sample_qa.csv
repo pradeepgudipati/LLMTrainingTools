@@ -1,0 +1,4 @@
+Question,Answer
+What is JSONL?,JSONL stores one JSON object per line.
+When should I use a system message?,Use it to set durable behavior or context for the assistant.
+What makes a good fine-tuning example?,A clear user input paired with the exact assistant behavior you want.

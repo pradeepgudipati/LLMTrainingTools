@@ -1,9 +1,11 @@
 # Get all items from the database
 import datetime
 import os
+import shutil
 import sqlite3
 
 from ..models.llm_training_data_model import LLMDataModel
+from .import_utils.jsonl_to_sqllite import ensure_messages_schema
 
 
 # Function to get all items from the database
@@ -39,6 +41,15 @@ def backup_db(db_path):
 
 # Restore the selected SQLite database
 def restore_db(db_path, backup_file):
-    os.system(f'cp {backup_file} {db_path}')
+    shutil.copy2(backup_file, db_path)
     print(f"Database restored from {backup_file}")
     return db_path
+
+
+def ensure_db_schema(db_path):
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    conn = sqlite3.connect(db_path)
+    try:
+        ensure_messages_schema(conn)
+    finally:
+        conn.close()

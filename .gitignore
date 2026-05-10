@@ -96,6 +96,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
 .venv
 env/
 venv/
@@ -131,5 +132,10 @@ cython_debug/
 *.db
 *.jsonl
 *.csv
+!samples/
+!samples/*.csv
+!samples/*.jsonl
 *.ann
 /chroma_db
+vectordb/*.env
+vectordb/*username-password*.txt

@@ -1,189 +1,151 @@
 # LLMTrainingTools
 
-LLMTrainingTools provides a suite of utilities designed to facilitate the creation and management of training data for language learning models (LLMs), particularly chatbots. It offers tools for converting data between JSONL and SQLite formats, editing training data through a web interface, and converting CSV files to JSONL.
+A local data workbench for preparing chat fine-tuning datasets from CSV, SQLite, and JSONL.
 
-# Key Features
-### - **Flask UI for Data Editing**: A web application for easy editing of training data.
-### - **CSV to JSONL Conversion**: Convert CSV files to JSONL format for LLM training.
-### - **Export and Import Data**: Export data from the database to JSONL and import JSONL data into the database.
-### - **Backup Data**: Backup the SQLite database to JSONL format for safekeeping or as SQL dump.
+LLMTrainingTools runs locally as a Flask app. It helps you import CSV/JSONL data, edit examples in a table, validate common dataset issues, back up the SQLite database, and export clean JSONL.
 
+![LLMTrainingTools table editor](screenshot.png)
 
+## Features
 
+- Local Flask editor for CSV, SQLite, and JSONL training data.
+- Core install stays lightweight: Flask, SQLite, SQLAlchemy, and dotenv only.
+- Optional AI/vector dependencies live behind the `ai` extra.
+- JSONL validation for OpenAI/HF-style chat records, roles, empty answers, duplicated questions, overlong examples, PII/secrets, encoding issues, and CSV headers.
+- Dataset shapes beyond Question/Answer: chat messages, preference pairs, tool traces, RAG chunks with metadata, and eval records with expected answers or rubrics.
+- SQLite backup/restore, JSONL import/export, and CSV to JSONL conversion.
 
-## Getting Started
- - Python 3.10 to 3.13
- - uv
- - An IDE (PyCharm preferred) VSCode also ok 
-    
-### Dependencies 
-   - SQLite : For the Database operations
-   - Flask : For the Web UI and API 
-   - Flask SQLAlchemy & SQLAlchemy : For the SQLite DB operations
-   - Jinja2 - For rendering the HTML templates
+## Requirements
 
-## Installation
+- Python 3.10 to 3.13
+- [uv](https://docs.astral.sh/uv/)
 
-Clone the repository and install the required Python packages with uv:
+## Quickstart
 
-***For Windows***
-```bash 
+```bash
 git clone https://github.com/pradeepgudipati/LLMTrainingTools.git
 cd LLMTrainingTools
+cp .env.example .env.local
+uv sync
+uv run python -m src.app
+```
+
+Open http://127.0.0.1:5000.
+
+You can also use the packaged CLI:
+
+```bash
+uv run llm-training-tools
+```
+
+## Dependency Groups
+
+Core app:
+
+```bash
 uv sync
 ```
-***For other platforms use the same `uv sync` command from the project root.***
 
-
-# Usage
-
-To run the web application for editing the training data
-```bash
-uv run python src/app.py
-
-----------------------------------------------------------------
-(llmtraining) PS D:\Dev\Workspace\LLMTrainingTools> uv run python .\src\app.py
-BASE_DIR: D:\Dev\Workspace\LLMTrainingTools
-DB_PATH: D:\Dev\Workspace\LLMTrainingTools\jsonl_data_to_db/data/qa_data.db
- * Serving Flask app 'app'
- * Debug mode: on
-WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
- * Running on http://127.0.0.1:5000
-Press CTRL+C to quit
- * Restarting with stat
-BASE_DIR: D:\Dev\Workspace\LLMTrainingTools
-DB_PATH: D:\Dev\Workspace\LLMTrainingTools\jsonl_data_to_db/data/qa_data.db
- * Debugger is active!
- * Debugger PIN: 209-879-976
-127.0.0.1 - - [29/Feb/2024 12:11:15] "GET / HTTP/1.1" 200 -
-...
-
-```
-
-Now Open the below URL in your favorite browser - http://127.0.0.1:5000
-
-![screenshot.png](screenshot.png)
-
-###  Now to export all these QA pairs in the Db into a JSONL file, run the following command
-1. If you have a Question answer CSV base you can convert it to JSONL and then import it to the SQLite DB
-2. Click on the "CSV to JSONL" button at the top. Once the conversion is done, you will see a message "CSV to JSONL Conversion Done"
-3. Now Import the JSONL into the DB file (SQLite) by clicking on the "Import JSONL to DB" button. Once the import is done, you will see a message "Import JSONL to DB Done"
-4. Now you can see the data in the table view. You can edit the data and save it back to the DB by clicking on the "Save to DB" button. Once the save is done, you will see a message "Data Saved to DB"
-5. Now to export the data from the DB to JSONL, click on the "Export DB to JSONL" button. Once the export is done, you will see a message "Export DB to JSONL Done"
-6. This JSONL file can now be used to train the LLM model. 
-
-# Optional 
-
-###  1. Convert the DB file to JSONL
-1. Code for DB to JSONL is in [db_to_jsonl.py](jsonl_data_to_db%2Fdb_to_jsonl.py).
-Verify the path for the jsonl and db files in the code
-
-```python
-# Paths for the JSONL file and SQLite database
-jsonl_file_path = "data/qa_data.jsonl"
-sqlite_db_path = "data/merged_data.db"
-```
-2. Now run the following command in the terminal to execute the code
+AI/vector features:
 
 ```bash
-uv run python src/data_tools/import_utils/db_to_jsonl.py
-```
-###  2. Convert the JSONL file to DB
-
-1. First verify the jsonl and db paths in the [jsonl_to_sqllite.py](jsonl_data_to_db%2Fjsonl_to_sqllite.py)
-
-```python
-jsonl_file_path = "src/data_tools/import_utils/data/qa_data.jsonl"
-sqlite_db_path = "data/qa_data.db"
-```
-2. Run the following command in the terminal to execute the code
-```bash 
-uv run python src/data_tools/import_utils/jsonl_to_sqllite.py
+uv sync --extra ai
 ```
 
-### 3. Convert the CSV file to JSONL
+Development checks:
 
-1. First verify the jsonl and csv paths in the[csv_to_jsonl.py](jsonl_data_to_db%2Fcsv_to_jsonl.py)
- - If you have multiple CSV files then use the below path variable 
-```python
-# Paths
-csv_files_path = './docs'
-output_jsonl_file = 'training_data.jsonl'
-convert_folder_csv_to_jsonl(csv_files_path, output_jsonl_file)
-``` 
- - If you have only 1 CSV file 
-```python
-# Paths
-csv_files_path = './training_data.csv'
-output_jsonl_file = 'training_data.jsonl'
-convert_single_csv_to_jsonl(csv_file_path, output_jsonl_file)
+```bash
+uv sync --dev
+./precommit.sh
+uv run pytest
 ```
 
-2. Execute the code 
-```bash 
-uv run python src/data_tools/import_utils/csv_to_jsonl.py
+Dependencies are declared in `pyproject.toml`. The `requirements.txt` file is only a compatibility note for users looking for the old pip workflow.
+
+## 60-Second Walkthrough
+
+1. Start the app with `uv run python -m src.app`.
+2. Open http://127.0.0.1:5000.
+3. Use the CSV to JSONL action with `samples/sample_qa.csv`.
+4. Import the generated JSONL into SQLite.
+5. Edit any row in the table.
+6. Run validation before export.
+7. Export JSONL for fine-tuning or evaluation.
+
+Sample CSV:
+
+```csv
+Question,Answer
+What is JSONL?,JSONL stores one JSON object per line.
+When should I use a system message?,Use it to set durable behavior or context for the assistant.
 ```
 
-# More Details 
-
-### 1. JSONL to DB - 
-
-- JSONL to SQLite DB Converter Code -  [jsonl_to_sqllite.py](jsonl_data_to_db%2Fjsonl_to_sqllite.py)
-
-This python code converts the jsonl data to a sqllite database with a table called messages. 
-The messages table has 3 rows
-
-1. id - Primary key
-2. Question - Contains the Question
-3. Answer - Contains the answer to the Question
-
-### 2. DB to JSONL 
- - SQLite to JSONL Converter code - [db_to_jsonl.py](jsonl_data_to_db%2Fdb_to_jsonl.py)
-
-This code converts the sqlite database to a jsonl file
-The format of the jsonl is as follows
+Exported chat JSONL:
 
 ```json
-{
-  "messages": [
-    {
-      "role": "user",
-      "content": ""
-    },
-    {
-      "role": "assistant",
-      "content": ""
-    }
-  ]
-}
+{"messages":[{"role":"user","content":"What is JSONL?"},{"role":"assistant","content":"JSONL stores one JSON object per line."}]}
 ```
 
-### 3. Flask Application for editing the training data
+Additional examples are in `samples/sample_chat.jsonl`.
 
-- Flask Server App Code - [app.py](src/app.py)
-- Flask HTML Template - [table_view.html](templates%2Ftable_view.html)
-- Data Model [llm_training_data_model.py](models%2Fllm_training_data_model.py)
+## Supported Dataset Shapes
 
-### 4. Training files
+Chat messages:
 
-1. JSONL Data File - [qa_data.jsonl](jsonl_data_to_db%2Fdata%2Fqa_data.jsonl)
-2. SQLite DB file - [qa_data.db](jsonl_data_to_db%2Fdata%2Fqa_data.db)
+```json
+{"messages":[{"role":"system","content":"Answer briefly."},{"role":"user","content":"What is JSONL?"},{"role":"assistant","content":"One JSON object per line."}]}
+```
 
-### 5. CSV to JSONL File
-- CSV to JSONL Converter -  [csv_to_jsonl.py](jsonl_data_to_db%2Fcsv_to_jsonl.py)
+Preference pairs:
 
-## Running the application 
-Start the Flask server by running the below command in the terminal
+```json
+{"prompt":"Pick the clearer answer.","chosen":"Use validation before export.","rejected":"Try uploading it."}
+```
+
+RAG chunks:
+
+```json
+{"text":"Fine-tuning examples should be specific and consistent.","metadata":{"source":"guide","chunk_id":"001"}}
+```
+
+Eval records:
+
+```json
+{"question":"Is the answer correct?","expected_answer":"Yes","rubric":"Must directly answer the question."}
+```
+
+## Configuration
+
+Copy `.env.example` to `.env.local` for local settings. Do not commit `.env.local`.
+
+Important settings:
+
 ```bash
-uv run python src/app.py
+FLASK_SECRET_KEY=change-me-before-sharing
+FLASK_RUN_HOST=127.0.0.1
+FLASK_RUN_PORT=5000
+LLMTOOLS_DB_PATH=src/data/qa_data.db
 ```
-Access the Web UI by opening the below URL in your favorite browser
-http://localhost:5000
 
+AI features require optional dependencies and API keys:
 
+```bash
+uv sync --extra ai
+OPENAI_API_KEY=...
+```
 
-# Contributing
-Contributions are welcome! If you have ideas for improvements or want to contribute code, please feel free to reach out or submit a pull request.
+## Docker Compose
 
-# License
-This project is free to use and modify. For any queries or contributions, please contact Pradeep Gudipati on [Linkedin](https://www.linkedin.com/in/pradeepgudipati)
+```bash
+docker compose up --build
+```
+
+Open http://127.0.0.1:5000.
+
+## CI
+
+GitHub Actions installs dependencies with uv, runs `./precommit.sh`, and runs pytest on Python 3.10, 3.11, and 3.12.
+
+## License
+
+MIT. See `LICENSE`.

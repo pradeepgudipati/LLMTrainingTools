@@ -1,0 +1,4 @@
+{"messages":[{"role":"system","content":"Answer concisely for a data preparation user."},{"role":"user","content":"What is JSONL?"},{"role":"assistant","content":"JSONL stores one JSON object per line, which makes large datasets easy to stream and validate."}]}
+{"prompt":"Choose the clearer assistant response.","chosen":"Use the validation report to fix empty answers before exporting.","rejected":"The file might work, try it."}
+{"text":"Fine-tuning examples should be specific, consistently formatted, and checked for secrets before upload.","metadata":{"source":"dataset-guide","chunk_id":"guide-001"}}
+{"question":"Does this answer satisfy the rubric?","answer":"Yes","expected_answer":"Yes","rubric":"The answer must directly confirm whether the response satisfies the rubric."}
