@@ -2,15 +2,15 @@
 import os
 
 import openai
-from dotenv import load_dotenv
+
+from .config import load_project_env
 
 prompt = (
     "Given the following text, generate a list of potential FAQ questions and answers in CSV with "
     "'Question' and 'Answer' columns. Ensure that each question is specific and contains enough context "
     "to be understood independently. Return only the CSV: ")
 
-load_dotenv('.env.local')
-load_dotenv('.env')
+load_project_env()
 
 
 def call_openai_sdk(text):

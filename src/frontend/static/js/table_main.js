@@ -140,6 +140,10 @@ function showUploadFilePopup(e) {
     document.getElementById('file-error').classList.add('hidden');
     document.getElementById('message-table').classList.add("hidden");
     document.getElementById('drop-zone').classList.remove("hidden")
+    document.getElementById('process-btn').classList.add("hidden");
+    document.getElementById('validate-btn').classList.add("hidden");
+    document.getElementById('reset-btn').classList.add("hidden");
+    resetValidationReport();
 
 }
 
@@ -242,13 +246,87 @@ function handleUploadFilePopup(event) {
         // Show the messages table
         document.getElementById('message-table').classList.remove("hidden");
         document.getElementById('file-name').textContent = upload_file_name;
-        document.getElementById('file-success').textContent = "Click Process to import the file";
+        document.getElementById('file-success').textContent = "Click Validate to inspect the file before processing";
         document.getElementById('file-success').classList.remove("hidden");
+        document.getElementById('file-error').classList.add("hidden");
+        resetValidationReport();
         // Show the file name and hide the upload button
         document.getElementById('process-btn').classList.remove("hidden")
+        document.getElementById('validate-btn').classList.remove("hidden")
         document.getElementById('reset-btn').classList.remove("hidden")
 
     }
+}
+
+function resetValidationReport() {
+    document.getElementById('validation-report').classList.add("hidden");
+    document.getElementById('validation-summary').textContent = "";
+    document.getElementById('validation-issues').innerHTML = "";
+}
+
+function renderValidationReport(report) {
+    const summary = document.getElementById('validation-summary');
+    const issues = document.getElementById('validation-issues');
+    const statusText = report.status === "valid" ? "Valid" : "Needs fixes";
+    summary.textContent = `${statusText}: ${report.valid_examples}/${report.total_examples} examples valid, `
+        + `${report.error_count} errors, ${report.warning_count} warnings`;
+    summary.className = report.status === "valid"
+        ? "text-sm font-semibold text-emerald-700"
+        : "text-sm font-semibold text-red-700";
+    issues.innerHTML = "";
+
+    if (report.issues.length === 0) {
+        const item = document.createElement('li');
+        item.textContent = "No validation issues found.";
+        issues.appendChild(item);
+    } else {
+        report.issues.slice(0, 50).forEach(issue => {
+            const item = document.createElement('li');
+            const line = issue.line_number ? `line ${issue.line_number}` : "file";
+            item.textContent = `${issue.severity.toUpperCase()} ${line}: ${issue.message}`;
+            item.className = issue.severity === "error" ? "text-red-700" : "text-amber-700";
+            issues.appendChild(item);
+        });
+        if (report.issues.length > 50) {
+            const item = document.createElement('li');
+            item.textContent = `Showing first 50 of ${report.issues.length} issues.`;
+            issues.appendChild(item);
+        }
+    }
+    document.getElementById('validation-report').classList.remove("hidden");
+}
+
+function validateUploadedFile() {
+    let formData = new FormData();
+    const fileInput = document.getElementById('dropzone-file');
+    const file = fileInput.files[0];
+    if (!file) {
+        showToast("Please select a CSV or JSONL file", true);
+        return;
+    }
+    formData.append('file', file);
+
+    fetch('/api/validate_dataset', {
+        method: 'POST',
+        body: formData
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.report) {
+                renderValidationReport(data.report);
+                showToast(
+                    data.report.status === "valid" ? "Validation passed" : "Validation found issues",
+                    data.report.status !== "valid"
+                );
+            } else {
+                throw new Error(data.message || "Validation failed");
+            }
+        })
+        .catch((error) => {
+            document.getElementById('file-error').textContent = "\n" + error.message;
+            document.getElementById('file-error').classList.remove("hidden");
+            showToast("Error validating file", true);
+        });
 }
 
 function downloadBlob(blob, fileName) {
@@ -285,7 +363,8 @@ function processUploadedFile() {
     console.log('File:', file);
     formData.append('file', file); // append the file to the FormData object
     console.log('File:', file, 'FormData -- File :', formData.get('file'));
-    if (upload_file_name.endsWith(".csv")) {
+    const normalizedFileName = upload_file_name.toLowerCase();
+    if (normalizedFileName.endsWith(".csv")) {
         // If the file is a CSV, convert it to JSONL and then import it to the database
         fetch('/api/convert_csv_to_jsonl', {
             method: 'POST',
@@ -305,6 +384,7 @@ function processUploadedFile() {
                 document.getElementById('file-error').classList.remove("hidden");
                 // Show success message if the status is success else throw an error
                 document.getElementById('process-btn').classList.add("hidden");
+                document.getElementById('validate-btn').classList.add("hidden");
                 document.getElementById('reset-btn').classList.add("hidden");
                 // The JSONL file needs to be downloaded
                 downloadBlob(blob, "training_data.jsonl")
@@ -316,7 +396,7 @@ function processUploadedFile() {
                 showToast("Error converting file", error.message)
             });
 
-    } else if (upload_file_name.endsWith(".jsonl")) {
+    } else if (normalizedFileName.endsWith(".jsonl")) {
         document.getElementById('message-table').classList.remove("hidden");
         // If the file is a JSONL, directly import it to the database
         fetch('/api/import_jsonl_to_sqlite', {
@@ -338,6 +418,7 @@ function processUploadedFile() {
                 document.getElementById('file-error').classList.add("hidden");
                 document.getElementById('file-error').textContent = "";
                 document.getElementById('process-btn').classList.add("hidden");
+                document.getElementById('validate-btn').classList.add("hidden");
                 document.getElementById('reset-btn').classList.add("hidden");
                 showToast("JSONL File imported successfully");
 
@@ -360,6 +441,8 @@ function resetUploadFilePopup() {
     document.getElementById('file-name').textContent = "";
     document.getElementById('dropzone-file').value = "";
     document.getElementById('message-table').classList.add("hidden");
+    document.getElementById('validate-btn').classList.add("hidden")
+    resetValidationReport();
 }
 
 // Find Duplicates
@@ -467,6 +550,7 @@ window.onload = function () {
 // Event listener for 'Cancel' button in the popup
     document.getElementById('cancel-btn').addEventListener('click', hidePopup);
     document.getElementById('process-btn').addEventListener('click', processUploadedFile);
+    document.getElementById('validate-btn').addEventListener('click', validateUploadedFile);
     document.getElementById('reset-btn').addEventListener('click', resetUploadFilePopup);
 
 // Event listener for 'Save' button in the popup

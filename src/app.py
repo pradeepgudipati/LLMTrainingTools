@@ -3,13 +3,13 @@ import shutil
 import time
 import uuid
 
-from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask import send_file
 
+from .config import PROJECT_ROOT, load_project_env, required_env
 from .data_tools.clean_data_in_db import clean_items
-from .data_tools.database_utils import backup_db, restore_db
-from .data_tools.dataset_validation import validate_csv_file, validate_jsonl_file
+from .data_tools.database_utils import backup_db, ensure_db_schema, restore_db
+from .data_tools.dataset_validation import build_validation_report, validate_csv_file, validate_jsonl_file
 from .data_tools.db_init import db
 from .data_tools.import_utils.csv_to_jsonl import convert_single_csv_to_jsonl
 from .data_tools.import_utils.db_to_jsonl import sqlite_to_jsonl
@@ -17,10 +17,16 @@ from .data_tools.import_utils.jsonl_to_sqllite import import_jsonl_to_sqlite, te
 from .models.llm_training_data_model import LLMDataModel
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, os.pardir))
-load_dotenv(os.path.join(PROJECT_ROOT, ".env.local"))
-load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
-DB_PATH = os.environ.get("LLMTOOLS_DB_PATH", os.path.join(BASE_DIR, "data/qa_data.db"))
+
+
+def resolve_db_path(path):
+    if os.path.isabs(path):
+        return path
+    return os.path.abspath(os.path.join(PROJECT_ROOT, path))
+
+
+load_project_env()
+DB_PATH = resolve_db_path(os.environ.get("LLMTOOLS_DB_PATH", os.path.join(BASE_DIR, "data/qa_data.db")))
 
 # noinspection PyRedeclaration
 app = Flask(__name__, template_folder="frontend/templates", static_folder="frontend/static")
@@ -32,7 +38,8 @@ def create_app():
     This function is used to create the app with the database and default configurations
     :return: app
     """
-    app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", "dev-only-change-me")
+    app.config["SECRET_KEY"] = required_env("FLASK_SECRET_KEY")
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + DB_PATH
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -56,6 +63,19 @@ def create_app():
         print(f"DB initializing Exception: {e}")
 
     return app
+
+
+def serve_app():
+    create_app()
+    with app.app_context():
+        db.create_all()
+        ensure_db_schema(DB_PATH)
+
+    app.run(
+        host=os.environ.get("FLASK_RUN_HOST", "127.0.0.1"),
+        port=int(os.environ.get("FLASK_RUN_PORT", "5000")),
+        debug=os.environ.get("FLASK_DEBUG", "1") == "1",
+    )
 
 
 # API for getting the question and answer from the database
@@ -188,6 +208,15 @@ def save_uploaded_csv(file, upload_folder):
     return save_uploaded_file(file, upload_folder, ".csv")
 
 
+def save_uploaded_dataset(file):
+    filename = file.filename.lower()
+    if filename.endswith(".jsonl"):
+        return save_uploaded_jsonl(file, app.config['UPLOAD_FOLDER_JSONL']), "jsonl"
+    if filename.endswith(".csv"):
+        return save_uploaded_csv(file, app.config['UPLOAD_FOLDER_CSV']), "csv"
+    raise ValueError("Only CSV and JSONL files are supported.")
+
+
 # API for getting the question and answer from the database
 @app.route("/api/save/<int:item_id>", methods=["POST"])
 def save_content(item_id):
@@ -203,6 +232,24 @@ def save_content(item_id):
         db.session.commit()
         return jsonify(status="success", message=f"Content for row {item_id} saved."), 200
     return jsonify(status="error", message=f"Item {item_id} not found."), 400
+
+
+@app.route('/api/validate_dataset', methods=['POST'])
+def validate_dataset():
+    if 'file' not in request.files:
+        return jsonify(status="error", message="No File uploaded"), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify(status="error", message="No selected file."), 400
+
+    try:
+        dataset_path, file_type = save_uploaded_dataset(file)
+        report = build_validation_report(dataset_path, file_type)
+        http_status = 200 if report["status"] == "valid" else 422
+        return jsonify(status=report["status"], report=report), http_status
+    except ValueError as error:
+        return jsonify(status="error", message=str(error)), 400
 
 
 # API for updating the answer in the database
@@ -367,7 +414,8 @@ def csv_to_jsonl():
                 except Exception as e:
                     return jsonify(status="error", message=f"Error converting CSV to JSONL: {e}"), 500
             else:
-                return jsonify(status="error", message="Invalid CSV file."), 400
+                report = build_validation_report(csv_path, "csv")
+                return jsonify(status="error", message="Invalid CSV file.", report=report), 400
         except Exception as e:
             print(f"Error converting CSV to JSONL: {e}")
             return jsonify(status="error", message=f"Error converting CSV to JSONL: CSV format issue - {e}"), 500
@@ -399,7 +447,8 @@ def jsonl_to_sqlite():
                 return jsonify(status="success",
                                message="File successfully uploaded and data imported to SQLite."), 200
             else:
-                return jsonify(status="error", message="Invalid JSONL file."), 400
+                report = build_validation_report(jsonl_path, "jsonl")
+                return jsonify(status="error", message="Invalid JSONL file.", report=report), 400
         except Exception as e:
             return jsonify(status="error", message=f"Error importing JSONL to SQLite: JSONL format error - {e}"), 500
 
@@ -553,6 +602,4 @@ def openai_qa_generator():
 
 
 if __name__ == "__main__":
-    from .cli import serve
-
-    serve()
+    serve_app()

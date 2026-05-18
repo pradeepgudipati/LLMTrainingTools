@@ -28,7 +28,7 @@ jobs:
         run: uv sync --dev
 
       - name: Run lint checks
-        run: ./precommit.sh
+        run: ./scripts/precommit.sh
 
       - name: Run tests
         run: uv run pytest

@@ -29,6 +29,12 @@
                 </tr>
                 </tbody>
             </table>
+            <div id="validation-report" class="hidden mt-4 text-left">
+                <div class="rounded border border-gray-200 bg-gray-50 p-3">
+                    <div id="validation-summary" class="text-sm font-semibold text-gray-900"></div>
+                    <ul id="validation-issues" class="mt-2 max-h-56 overflow-y-auto text-xs text-gray-700"></ul>
+                </div>
+            </div>
 
             <div id="drop-zone" class="mt-xl-3 px-7 py-3">
 
@@ -55,6 +61,9 @@
                 </button>
                 <button id="reset-btn" class="hidden px-4 py-1 text-white bg-red-500 rounded hover:bg-red-600">
                     Reset
+                </button>
+                <button id="validate-btn" class="hidden px-4 py-1 text-white bg-emerald-600 rounded hover:bg-emerald-700">
+                    Validate
                 </button>
                 <button id="process-btn" class="hidden px-4 py-1 text-white bg-blue-500 rounded hover:bg-blue-600">
                     Process
