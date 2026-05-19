@@ -17,6 +17,10 @@ class LLMDataModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     question = db.Column(db.Text)
     answer = db.Column(db.Text)
+    dataset_type = db.Column(db.String(50), default="chat")
+    payload = db.Column(db.Text)
+    validation_errors = db.Column(db.Text)
+    validation_warnings = db.Column(db.Text)
 
     def __repr__(self):
         return f"<LLMDataModel {self.id}>"
@@ -26,4 +30,7 @@ class LLMDataModel(db.Model):
             'id': self.id,
             'question': self.question,
             'answer': self.answer,
+            'dataset_type': self.dataset_type,
+            'validation_errors': self.validation_errors,
+            'validation_warnings': self.validation_warnings,
         }

@@ -1,6 +1,0 @@
-# This project uses uv for dependency management.
-#
-# Install dependencies with:
-#   uv sync
-#
-# Dependencies are declared in pyproject.toml and locked in uv.lock.

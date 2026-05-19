@@ -3,88 +3,119 @@ import logging
 import os
 import sqlite3
 
+from ..dataset_validation import normalize_record, validate_jsonl_records
 
-def import_jsonl_to_sqlite(jsonl_path, sqlite_part_path):
-    print(f"import_jsonl_to_sqlite   jsonl_path: {jsonl_path} \n sqlite_path: {sqlite_part_path}")
-    #  Get current working directory and then append the path to the sqlite database
-    cwd = os.getcwd()
-    print(f"cwd: {cwd}")
-    sqlite_full_path = os.path.join(cwd, "src/data", sqlite_part_path)
-    print(f"Finally sqlite_path: {sqlite_full_path}")
-    # Create a SQLite database and table
-    os.makedirs(os.path.dirname(sqlite_full_path), exist_ok=True)
-    conn = sqlite3.connect(sqlite_full_path)
+
+def resolve_sqlite_path(sqlite_path):
+    if os.path.isabs(sqlite_path):
+        return sqlite_path
+    return os.path.join(os.getcwd(), "src/data", sqlite_path)
+
+
+def ensure_messages_schema(conn):
     cursor = conn.cursor()
-    table_exists = cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='messages'").fetchone()
-    print(f"table_exists: {table_exists}")
-    # if the table does not exist, create it else drop the table and recreate it
-    if table_exists is not None:
-        cursor.execute("DROP TABLE messages")
-        conn.commit()
-        print("Table dropped")
-
     cursor.execute("""
             CREATE TABLE IF NOT EXISTS messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 question TEXT,
-                answer TEXT
+                answer TEXT,
+                dataset_type TEXT DEFAULT 'chat',
+                payload TEXT,
+                validation_errors TEXT,
+                validation_warnings TEXT
             )
         """)
-    print("Table created")
+
+    existing_columns = {
+        row[1] for row in cursor.execute("PRAGMA table_info(messages)").fetchall()
+    }
+    columns = {
+        "dataset_type": "TEXT DEFAULT 'chat'",
+        "payload": "TEXT",
+        "validation_errors": "TEXT",
+        "validation_warnings": "TEXT",
+    }
+    for column_name, column_type in columns.items():
+        if column_name not in existing_columns:
+            cursor.execute(f"ALTER TABLE messages ADD COLUMN {column_name} {column_type}")
+    conn.commit()
+
+
+def import_jsonl_to_sqlite(jsonl_path, sqlite_part_path):
+    print(
+        "import_jsonl_to_sqlite "
+        f"jsonl_path: {jsonl_path} sqlite_path: {sqlite_part_path}"
+    )
+    sqlite_full_path = resolve_sqlite_path(sqlite_part_path)
+    print(f"Finally sqlite_path: {sqlite_full_path}")
+    os.makedirs(os.path.dirname(sqlite_full_path), exist_ok=True)
+    conn = sqlite3.connect(sqlite_full_path)
+    cursor = conn.cursor()
+    ensure_messages_schema(conn)
+    cursor.execute("DELETE FROM messages")
+    print("Table ready")
 
     lines_read = 0
     insertions_attempted = 0
-    with open(jsonl_path, "r") as file:
-        for line in file:
-            lines_read += 1
-            try:
-                data = json.loads(line)
-                question_msg = ''
-                answer_msg = ''
-                for message in data["messages"]:
-                    if message["role"] == "user":
-                        question_msg = message["content"]
-                    elif message["role"] == "assistant":
-                        answer_msg = message["content"]
-                if question_msg and answer_msg:
-                    # print(f"Inserting: {question_msg}, {answer_msg}")
-                    cursor.execute(
-                        "INSERT INTO messages (question, answer) VALUES (?, ?)",
-                        (question_msg, answer_msg),
-                    )
-                    insertions_attempted += 1
-                # print(f"Number of rows inserted: {cursor.rowcount}")
-            except Exception as e:
-                logging.error(f"Error inserting data: {e}")
+    for normalized in validate_jsonl_records(jsonl_path):
+        lines_read += 1
+        try:
+            if normalized["errors"]:
+                logging.warning(
+                    "Skipping line %s due to validation errors: %s",
+                    normalized["line_number"],
+                    normalized["errors"],
+                )
                 continue
+
+            cursor.execute(
+                """
+                INSERT INTO messages (
+                    question,
+                    answer,
+                    dataset_type,
+                    payload,
+                    validation_errors,
+                    validation_warnings
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    normalized["question"],
+                    normalized["answer"],
+                    normalized["dataset_type"],
+                    json.dumps(normalized["payload"], ensure_ascii=False),
+                    json.dumps(normalized["errors"]),
+                    json.dumps(normalized["warnings"]),
+                ),
+            )
+            insertions_attempted += 1
+        except (sqlite3.DatabaseError, TypeError, ValueError) as error:
+            logging.error("Error inserting data: %s", error)
+            continue
 
     try:
         conn.commit()
-    except Exception as e:
-        logging.error(f"Error committing transaction: {e}")
+    except sqlite3.DatabaseError as error:
+        logging.error("Error committing transaction: %s", error)
 
     conn.close()
-    print(f"Data written to lines_read: {lines_read}, insertions_attempted: {insertions_attempted}")
+    print(
+        "Data written to "
+        f"lines_read: {lines_read}, insertions_attempted: {insertions_attempted}"
+    )
     return lines_read, insertions_attempted
 
 
 def test_jsonl_to_sqlite(json_path, sqlite_path):
-    # Read data from JSONL file
     jsonl_data = []
-    with open(json_path, "r") as file:
+    with open(json_path, "r", encoding="utf-8") as file:
         for line in file:
-            data = json.loads(line)
-            question_msg = None
-            answer_msg = None
-            for message in data["messages"]:
-                if message["role"] == "user":
-                    question_msg = message["content"]
-                elif message["role"] == "assistant":
-                    answer_msg = message["content"]
-            jsonl_data.append((question_msg, answer_msg))
+            normalized = normalize_record(json.loads(line))
+            if not normalized["errors"]:
+                jsonl_data.append((normalized["question"], normalized["answer"]))
 
-    # Read data from SQLite database
-    conn = sqlite3.connect(sqlite_path)
+    conn = sqlite3.connect(resolve_sqlite_path(sqlite_path))
     cursor = conn.cursor()
     cursor.execute("SELECT question, answer FROM messages")
     db_data = cursor.fetchall()
@@ -93,10 +124,3 @@ def test_jsonl_to_sqlite(json_path, sqlite_path):
         print("Length of Data is the same -- Copy successful")
     else:
         print("Length of Data is different -- Copy failed ")
-
-# jsonl_file_path = "data/qa_data.jsonl"
-# sqlite_db_path = "data/qa_data.db"
-#
-# import_jsonl_to_sqlite(jsonl_file_path, sqlite_db_path)
-# # Verify that all Records are added to DB.
-# test_jsonl_to_sqlite(jsonl_file_path, sqlite_db_path)

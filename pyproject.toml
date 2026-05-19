@@ -1,45 +1,57 @@
 [project]
 name = "llmtrainingtools"
 version = "0.1.0"
-description = "Utilities and a Flask UI for creating and managing LLM training data."
+description = "A local data workbench for preparing chat fine-tuning datasets from CSV, SQLite, and JSONL."
 readme = "README.md"
 requires-python = ">=3.10,<3.14"
 dependencies = [
-    "annoy==1.17.3",
-    "blinker==1.7.0",
-    "click==8.1.7",
-    "colorama==0.4.6",
     "flask==3.0.3",
     "flask-sqlalchemy==3.1.1",
-    "greenlet==3.0.3",
+    "python-dotenv~=1.0",
+    "werkzeug==3.1.5",
+]
+
+[project.optional-dependencies]
+ai = [
+    "annoy==1.17.3",
     "httpx<0.28",
-    "itsdangerous==2.2.0",
-    "jinja2==3.1.6",
-    "markupsafe==2.1.5",
     "nltk==3.9.1",
-    "numpy==1.26.4",
     "openai==1.23.2",
     "pandas~=2.2.2",
     "pinecone-client==3.2.2",
     "pymilvus",
-    "python-dotenv~=1.0",
     "scikit-learn==1.5.0",
-    "sqlalchemy==2.0.29",
     "torch==2.8.0",
     "tqdm==4.66.4",
     "transformers==4.53.0",
-    "typing-extensions==4.11.0",
-    "werkzeug==3.1.5",
 ]
+
+[project.scripts]
+llm-training-tools = "src.cli:main"
 
 [dependency-groups]
 dev = [
     "pylint",
+    "pytest",
     "ruff",
 ]
 
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
 [tool.uv]
-package = false
+package = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
 
 [tool.pylint.format]
 max-line-length = 120

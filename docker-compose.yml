@@ -1,0 +1,12 @@
+services:
+  llm-training-tools:
+    build: .
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env.example
+    environment:
+      FLASK_RUN_HOST: 0.0.0.0
+      FLASK_RUN_PORT: 5000
+    volumes:
+      - ./src/data:/app/src/data
